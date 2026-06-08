@@ -1,0 +1,7 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type": "Feature", "properties": {"nome": "Roma"}, "geometry": {"type": "Point", "coordinates": [12.4924, 41.8902]}},
+    {"type": "Feature", "properties": {"nome": "tratto"}, "geometry": {"type": "LineString", "coordinates": [[12.0, 42.0], [13.0, 43.0]]}}
+  ]
+}

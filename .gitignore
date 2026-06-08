@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# AI tool configs (personal)
+.claude/
+.codex/
+.gemini/
+.opencode/
+.agents/
+
+# Internal working notes
+tasks/
+tmp/
+tmp.md
+
+# Caches
+.pytest_cache/
+.ruff_cache/
