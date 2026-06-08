@@ -1,5 +1,10 @@
 # LOG
 
+## 2026-06-08 — v0.1.1
+
+- Subrelease patch: aggiunta sezione `Examples:` nel docstring di **ogni** sottocomando CLI (`systems`, `convert`, `inspect`, `detect`, `targets`, `roundtrip`, `batch`, `geojson`, `cache`, `doctor`) — almeno un esempio utile per LLM, sul modello di `opensdmx`.
+- `convert`: nota esplicita che le opzioni globali (`-o/--output`) vanno **prima** del sottocomando (`openverto -o jsonl convert ...`), non dopo — causa frequente di `No such option: -o`.
+
 ## 2026-06-08
 
 - Porting Python del CLI Go `printing-press/library/verto` → **openverto** (libreria + CLI, stile `opensdmx`).

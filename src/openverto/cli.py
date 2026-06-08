@@ -221,7 +221,13 @@ def _main(
 # --------------------------------------------------------------------------- #
 @app.command()
 def systems(refresh: bool = typer.Option(False, "--refresh", help="Force a live fetch (ignore cache)")):
-    """List the Italian reference systems supported by Verto Online."""
+    """List the Italian reference systems supported by Verto Online.
+
+    Examples:
+
+      openverto systems
+      openverto -o jsonl systems
+    """
     try:
         rows = lib_systems(refresh=refresh)
     except Exception as exc:  # noqa: BLE001
@@ -236,7 +242,19 @@ def convert(
     to_epsg: str = typer.Option(..., "--to", help="Target EPSG (e.g. 6706)"),
     no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the offline conversion cache"),
 ):
-    """Convert one or more coordinates between reference systems (e=est/lon, n=nord/lat)."""
+    """Convert one or more coordinates between reference systems (e=est/lon, n=nord/lat).
+
+    Axis order is always e (est/lon) first, n (nord/lat) second.
+
+    Examples:
+
+      openverto convert --from 23033 --to 6706 290000 4640000
+      openverto -o jsonl convert --from 4265 --to 6706 12.4924 41.8902
+      printf '290000,4640000\\n' | openverto -o csv convert --from 23033 --to 6706
+
+    Note: global options like -o/--output go BEFORE the subcommand
+    (openverto -o jsonl convert ...), never after it.
+    """
     in_e = _parse_epsg(from_epsg)
     out_e = _parse_epsg(to_epsg)
     pairs = _read_coord_args(coords or [])
@@ -257,7 +275,13 @@ def convert(
 
 @app.command()
 def inspect(epsg: list[str] = typer.Argument(..., help="One or more EPSG codes")):
-    """Show datum family, axis order, units, zone and false easting for an EPSG."""
+    """Show datum family, axis order, units, zone and false easting for an EPSG.
+
+    Examples:
+
+      openverto inspect 3003
+      openverto -o json inspect 3003 6706
+    """
     cards = []
     for a in epsg:
         code = _parse_epsg(a)
@@ -270,13 +294,25 @@ def inspect(epsg: list[str] = typer.Argument(..., help="One or more EPSG codes")
 
 @app.command()
 def detect(e: float = typer.Argument(...), n: float = typer.Argument(...)):
-    """Guess the likely source reference system of a coordinate from its magnitude."""
+    """Guess the likely source reference system of a coordinate from its magnitude.
+
+    Examples:
+
+      openverto detect 290000 4640000
+      openverto -o json detect 1500000 4640000
+    """
     _emit(lib_detect(e, n))
 
 
 @app.command()
 def targets(epsg: str = typer.Argument(..., help="Source EPSG")):
-    """List the reference systems you can convert a given EPSG into."""
+    """List the reference systems you can convert a given EPSG into.
+
+    Examples:
+
+      openverto targets 3003
+      openverto -o csv targets 3003
+    """
     code = _parse_epsg(epsg)
     try:
         rows = lib_targets(code)
@@ -296,7 +332,13 @@ def roundtrip(
     The residual is the gap between the original coordinate and itself after the
     forward + inverse transform (datum shift + projection). residual_e/residual_n
     are exact in the source unit; residual_m is an approximate distance in metres
-    (for geographic sources, a latitude-aware spherical approximation)."""
+    (for geographic sources, a latitude-aware spherical approximation).
+
+    Examples:
+
+      openverto roundtrip --from 23033 --to 6706 290000 4640000
+      openverto -o json roundtrip --from 3003 --to 6707 1500000 4640000
+    """
     in_e = _parse_epsg(from_epsg)
     out_e = _parse_epsg(to_epsg)
     pairs = _read_coord_args(coords or [])
@@ -330,7 +372,14 @@ def batch(
     skip_invalid: bool = typer.Option(False, "--skip-invalid", help="Bisect and skip coordinates the service rejects"),
     rejects: str = typer.Option("", "--rejects", help="Write skipped rows to this CSV"),
 ):
-    """Convert a whole CSV of coordinates to CSV or GeoJSON (auto-chunks at 32000)."""
+    """Convert a whole CSV of coordinates to CSV or GeoJSON (auto-chunks at 32000).
+
+    Examples:
+
+      openverto batch catasto.csv --from 3003 --to 6707 --e-col est --n-col nord --out out.csv
+      openverto batch points.csv --from 3003 --to 6706 --format geojson --out out.geojson
+      openverto batch mixed.csv --from 4265 --to 6706 --skip-invalid --rejects bad.csv
+    """
     in_e = _parse_epsg(from_epsg)
     out_e = _parse_epsg(to_epsg)
     if fmt not in ("csv", "geojson"):
@@ -415,6 +464,11 @@ def geojson(
 
     GeoJSON positions (x, y) equal (e, n) — longitude, latitude for geographic
     systems — matching the service's axis order directly, with no swap needed.
+
+    Examples:
+
+      openverto geojson aree.geojson --from 4230 --to 6706 --out out.geojson
+      cat aree.geojson | openverto geojson - --from 4230 --to 6706
     """
     in_e = _parse_epsg(from_epsg)
     out_e = _parse_epsg(to_epsg)
@@ -445,7 +499,13 @@ def cache(
     stats: bool = typer.Option(False, "--stats", help="Show cache statistics"),
     clear: bool = typer.Option(False, "--clear", help="Delete cached systems and conversions"),
 ):
-    """Inspect or clear the local offline cache of conversions and systems."""
+    """Inspect or clear the local offline cache of conversions and systems.
+
+    Examples:
+
+      openverto cache --stats
+      openverto cache --clear
+    """
     if clear:
         removed = cache_mod.clear()
         _emit({"cleared": removed})
@@ -455,7 +515,13 @@ def cache(
 
 @app.command()
 def doctor():
-    """Verify connectivity to the IGM Verto Online service."""
+    """Verify connectivity to the IGM Verto Online service.
+
+    Examples:
+
+      openverto doctor
+      openverto -o json doctor
+    """
     info = {"version": __version__, "service": "IGM Verto Online"}
     try:
         sysrows = lib_systems(refresh=True)
