@@ -1,5 +1,19 @@
 # LOG
 
+## 2026-06-08 — v0.2.0 — batch legge il CSV con DuckDB
+
+- `batch` ora legge il CSV di input via **DuckDB** (dipendenza core aggiunta): autodetect del delimitatore (`,`, `;`, tab, `|`) rilevato dalla **riga di header**, nuova opzione `--decimal` (`.` default, `,` per CSV italiani tipo `12,4924`), supporto **stdin** (`-`) e stdout (default senza `--out`).
+- Niente formati spaziali: l'idea iniziale (export GPKG/FGB/GeoParquet/SHP via estensione spatial) è stata abbandonata dopo una sonda empirica — driver `Parquet` assente, FGB riordina le feature, GeoParquet nativo tagga CRS84 invece dell'EPSG. Si usa DuckDB solo per I/O CSV robusto.
+- Bug risolto: con `decimal_separator=','` lo sniffer di DuckDB sceglie la virgola come delimitatore su righe tutte-numeriche → rilevo io il delimitatore dall'header escludendo la virgola, poi `read_csv` con `delim` esplicito.
+- Regressione risolta (lettura tipizzata riformattava le colonne attributo, es. `19.90`→`19.9`, `1000,50`→`1000.5`): ora `read_csv` con `all_varchar=true` tiene ogni cella come stringa grezza; la virgola→punto è normalizzata **solo** sulle colonne x/y dentro `batch`.
+- Allineamento libreria↔CLI: esportati `read_csv_file`, `resolve_column`, `rows_to_geojson` in `openverto/__init__.py` così il workflow di `batch` è riproducibile da `import openverto`.
+- README: badge (PyPI/GitHub/DeepWiki/MIT/Newsletter) stile opensdmx + link al servizio IGM Verto Online + sezione formato CSV di default.
+- Test: +6 offline (delimitatore `;`, celle grezze preservate, header numerico-regression, stdin, colonna mancante, alias). 22 passati, ruff pulito, wheel ok.
+- Skill `verto-explorer` aggiornata (v1.1) con la lettura DuckDB; nuova guida d'installazione skill `docs/skill/README.md` (stile opensdmx, `npx skills add ondata/openverto`), linkata dal README.
+- Manuale ufficiale IGM scaricato in `ref/` (PDF + markdown via `lit`).
+- Gestito con OpenSpec: change `batch-duckdb-csv` (ex `duckdb-spatial-export`, ridimensionata).
+- TODO: bump versione + eventuale release (dipendenza core nuova).
+
 ## 2026-06-08 — v0.1.1
 
 - Subrelease patch: aggiunta sezione `Examples:` nel docstring di **ogni** sottocomando CLI (`systems`, `convert`, `inspect`, `detect`, `targets`, `roundtrip`, `batch`, `geojson`, `cache`, `doctor`) — almeno un esempio utile per LLM, sul modello di `opensdmx`.

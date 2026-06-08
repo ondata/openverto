@@ -23,7 +23,7 @@ from .base import (
 )
 from .transform import convert, convert_skipping, inspect, roundtrip, targets
 from .detect import detect
-from .geo import reproject_geojson
+from .geo import read_csv_file, reproject_geojson, resolve_column, rows_to_geojson
 from .systems import info, system_by_epsg, systems
 
 __all__ = [
@@ -37,6 +37,9 @@ __all__ = [
     "roundtrip",
     "detect",
     "reproject_geojson",
+    "read_csv_file",
+    "resolve_column",
+    "rows_to_geojson",
     "set_timeout",
     "set_base_url",
     "set_extra_headers",

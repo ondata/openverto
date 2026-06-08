@@ -1,10 +1,18 @@
 # openverto
 
+[![PyPI version](https://img.shields.io/pypi/v/openverto)](https://pypi.org/project/openverto/)
+[![GitHub](https://img.shields.io/badge/github-ondata%2Fopenverto-blue?logo=github)](https://github.com/ondata/openverto)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ondata/openverto)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Newsletter](https://img.shields.io/badge/newsletter-ondata-FF6719?logo=substack)](https://ondata.substack.com/)
+
 > Tool sperimentale — aiutaci a testarlo [aprendo issue](https://github.com/ondata/openverto/issues) o inviando feedback.
 
-CLI e libreria Python per il servizio ufficiale **IGM Verto Online**: trasforma coordinate tra tutti i sistemi di riferimento italiani (Roma40, ED50, IGM95, ETRS89, RDN2008) **senza installare le griglie NTv2**, appoggiandosi al servizio autorevole dell'Istituto Geografico Militare.
+CLI e libreria Python per il servizio ufficiale **[IGM Verto Online](https://igmi.esercito.difesa.it/servizi/verto-online/)**: trasforma coordinate tra tutti i sistemi di riferimento italiani (Roma40, ED50, IGM95, ETRS89, RDN2008) **senza installare le griglie NTv2**, appoggiandosi al servizio autorevole dell'Istituto Geografico Militare.
 
 Pensato per essere **orchestrato da agenti AI**: output `--json`/`--jsonl`/`--csv`, non interattivo, pipeable, read-only. L'intelligenza sugli EPSG (`inspect`, `detect`, `targets`) è completamente **offline**.
+
+> **Meglio con un'AI.** openverto funziona benissimo da solo, ma **dà il meglio guidato da un agente AI**. Per un'esperienza interattiva — identificazione del sistema di origine, scelta di un target valido, conversione e verifica della copertura — abbinalo alla Agent Skill [`verto-explorer`](skills/verto-explorer/SKILL.md) inclusa nel repo. Vedi la [**guida d'installazione**](docs/skill/README.md) per i passi.
 
 ## Installazione
 
@@ -35,9 +43,25 @@ openverto inspect 3003
 # converti un CSV di punti Gauss-Boaga (colonne est/nord) in RDN2008/TM32
 openverto batch catasto.csv --from 3003 --to 6707 --e-col est --n-col nord --out out.csv
 
+# CSV all'italiana (delimitatore ; e virgola decimale), da stdin verso stdout
+cat comuni.csv | openverto batch - --from 4265 --to 6706 --decimal , --e-col lon --n-col lat
+
 # riproietta le geometrie di un GeoJSON
 openverto geojson aree.geojson --from 4230 --to 6706 --out out.geojson
 ```
+
+### Lettura del CSV (comando `batch`)
+
+Il CSV di input è letto con **DuckDB**: il **delimitatore** (`,`, `;`, tab, `|`) è
+rilevato automaticamente, non va dichiarato.
+
+- **Formato di default, nessuna opzione richiesta**: CSV con prima riga di
+  intestazione, separatore decimale **punto** (`12.4924`). Il delimitatore può
+  essere virgola o punto e virgola: viene riconosciuto da solo.
+- **CSV all'italiana**: per coordinate con la **virgola decimale** (`12,4924`)
+  aggiungi `--decimal ,`.
+- **stdin/stdout**: usa `-` come file per leggere da stdin; ometti `--out` per
+  scrivere su stdout.
 
 ## Formati di output
 
@@ -58,7 +82,7 @@ openverto -o csv convert ...      # CSV
 |---|---|
 | `systems` | Elenco dei sistemi di riferimento supportati (EPSG + descrizione) |
 | `convert` | Converte una o più coordinate (`e n`, o `e,n` da stdin) |
-| `batch` | Converte un CSV in CSV o GeoJSON (auto-chunk a 32000, `--skip-invalid`) |
+| `batch` | Converte un CSV (letto con DuckDB: delimitatore auto, `--decimal`, `-`=stdin) in CSV o GeoJSON (auto-chunk a 32000, `--skip-invalid`) |
 | `geojson` | Riproietta le geometrie di un file GeoJSON |
 | `inspect` | Famiglia datum, ordine assi, unità, fuso, false easting di un EPSG |
 | `detect` | Indovina il sistema di origine di una coordinata dalla sua magnitudine |
@@ -91,6 +115,11 @@ ov.inspect(3003)
 ov.targets(3003)
 ov.detect(2300000, 4640000)           # {"kind": "projected", "candidate_epsg": [3004], ...}
 
+# lettura CSV robusta come la CLI (delimitatore auto; '-' = stdin)
+# le celle restano stringhe grezze: normalizza la virgola solo sulle colonne x/y
+header, records = ov.read_csv_file("comuni.csv", decimal=",")
+e_idx = ov.resolve_column(header, "lon", ov.geo.E_ALIASES)
+
 # salta le coordinate fuori griglia isolandole per bisezione
 results, skipped = ov.convert_skipping(coords, 3003, 6707)
 
@@ -111,7 +140,7 @@ Nessuna. Il servizio è libero e gratuito; i campi `utente`/`chiave` richiesti d
 
 ## Crediti
 
-Servizio dati: [IGM Verto Online](https://igmi.esercito.difesa.it/), Istituto Geografico Militare.
+Servizio dati: [IGM Verto Online](https://igmi.esercito.difesa.it/servizi/verto-online/), Istituto Geografico Militare.
 
 ## Licenza
 

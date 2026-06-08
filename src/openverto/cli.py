@@ -362,11 +362,12 @@ def roundtrip(
 
 @app.command()
 def batch(
-    file: str = typer.Argument(..., help="Input CSV file"),
+    file: str = typer.Argument(..., help="Input CSV file ('-' for stdin)"),
     from_epsg: str = typer.Option(..., "--from", help="Source EPSG (e.g. 3003)"),
     to_epsg: str = typer.Option(..., "--to", help="Target EPSG, different datum (e.g. 6707)"),
     e_col: str = typer.Option("", "--e-col", help="East/longitude column (auto-detected if empty)"),
     n_col: str = typer.Option("", "--n-col", help="North/latitude column (auto-detected if empty)"),
+    decimal: str = typer.Option(".", "--decimal", help="Decimal separator of the input CSV: '.' or ',' (Italian-style 12,4924)"),
     out: str = typer.Option("", "--out", help="Output file (default stdout)"),
     fmt: str = typer.Option("csv", "--format", help="csv | geojson"),
     skip_invalid: bool = typer.Option(False, "--skip-invalid", help="Bisect and skip coordinates the service rejects"),
@@ -374,10 +375,18 @@ def batch(
 ):
     """Convert a whole CSV of coordinates to CSV or GeoJSON (auto-chunks at 32000).
 
+    The CSV is read with DuckDB. Default input format, no option needed: a header
+    row and a dot decimal separator (12.4924); the delimiter (',', ';', tab, '|')
+    is auto-detected. Use --decimal ',' for Italian-style CSVs whose coordinates
+    look like 12,4924. Pass '-' as the file to read from stdin; omit --out to
+    write to stdout.
+
     Examples:
 
       openverto batch catasto.csv --from 3003 --to 6707 --e-col est --n-col nord --out out.csv
       openverto batch points.csv --from 3003 --to 6706 --format geojson --out out.geojson
+      openverto batch comuni.csv --from 4265 --to 6706 --decimal , --e-col lon --n-col lat
+      cat comuni.csv | openverto batch - --from 4265 --to 6706 --decimal ,
       openverto batch mixed.csv --from 4265 --to 6706 --skip-invalid --rejects bad.csv
     """
     in_e = _parse_epsg(from_epsg)
@@ -385,7 +394,7 @@ def batch(
     if fmt not in ("csv", "geojson"):
         _die(f"--format must be 'csv' or 'geojson', got {fmt!r}", EXIT_USAGE)
     try:
-        header, records = read_csv_file(file)
+        header, records = read_csv_file(file, decimal=decimal)
         e_idx = resolve_column(header, e_col, E_ALIASES)
         n_idx = resolve_column(header, n_col, N_ALIASES)
     except (OSError, ValueError) as exc:
@@ -395,8 +404,11 @@ def batch(
     for i, rec in enumerate(records):
         if e_idx >= len(rec) or n_idx >= len(rec):
             _die(f"row {i+1}: too few fields for the e/n columns", EXIT_USAGE)
+        e_raw, n_raw = rec[e_idx].strip(), rec[n_idx].strip()
+        if decimal == ",":
+            e_raw, n_raw = e_raw.replace(",", "."), n_raw.replace(",", ".")
         try:
-            pairs.append((float(rec[e_idx].strip()), float(rec[n_idx].strip())))
+            pairs.append((float(e_raw), float(n_raw)))
         except ValueError:
             _die(f"row {i+1}: invalid e/n value", EXIT_USAGE)
 

@@ -18,7 +18,7 @@ compatibility: >
   inspect, detect, targets, roundtrip, cache, doctor).
 metadata:
   author: ondata
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Verto Explorer — Guided Coordinate Conversion for Italy
@@ -122,12 +122,22 @@ printf '12.49,41.89\n13.0,42.0\n' | openverto -o jsonl convert --from 4265 --to 
 openverto batch catasto.csv --from 3003 --to 6707 --e-col est --n-col nord --out out.csv
 openverto batch points.csv  --from 3003 --to 6706 --format geojson --out out.geojson
 
+# Italian-style CSV (';' delimiter, comma decimal), piped from stdin to stdout
+cat comuni.csv | openverto batch - --from 4265 --to 6706 --decimal , --e-col lon --n-col lat
+
 # reproject the geometries of a GeoJSON file
 openverto geojson aree.geojson --from 4230 --to 6706 --out out.geojson
 ```
 
 `batch` auto-detects common column aliases (est/nord/lon/lat/x/y) and auto-chunks
 at the 32000-coordinate service cap. Results are cached for offline replay.
+
+**CSV input (read with DuckDB).** Default format, no option needed: a header row
+and a **dot** decimal separator (`12.4924`); the **delimiter** (`,`, `;`, tab,
+`|`) is auto-detected — never pass it. For Italian-style CSVs with a **comma**
+decimal (`12,4924`), add `--decimal ,`. Pass `-` as the file to read from
+**stdin**; omit `--out` to write to **stdout** (combine with `-o jsonl`/`-o csv`
+for clean piped data).
 
 Output field names (verified — parse these directly):
 - `convert` rows: `in_e, in_n, out_e, out_n`.

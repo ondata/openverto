@@ -24,3 +24,6 @@ tmp.md
 # Caches
 .pytest_cache/
 .ruff_cache/
+
+# Reference material (e.g. third-party manuals, not for redistribution)
+ref/

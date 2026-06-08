@@ -86,3 +86,76 @@ def test_geojson_walk_handles_integer_positions():
     assert captured["coords"] == [(12.0, 42.0)]
     assert out["coordinates"] == [13.0, 43.0]
     assert out["crs"]["properties"]["name"] == "urn:ogc:def:crs:EPSG::6706"
+
+
+def test_read_csv_semicolon_and_decimal_comma(tmp_path):
+    """Italian-style CSV: ';' delimiter auto-detected; cells kept as raw strings."""
+    from openverto.geo import read_csv_file
+
+    p = tmp_path / "it.csv"
+    p.write_text(
+        "nome;est;nord;codice;prezzo\nroma;12,4924;41,8902;00123;1000,50\n",
+        encoding="utf-8",
+    )
+    header, records = read_csv_file(str(p), decimal=",")
+    assert header == ["nome", "est", "nord", "codice", "prezzo"]
+    # cells are returned verbatim (not reformatted): comma decimals preserved,
+    # leading zeros preserved, attribute trailing zeros preserved
+    assert records[0] == ["roma", "12,4924", "41,8902", "00123", "1000,50"]
+
+
+def test_read_csv_standard_comma_delimiter(tmp_path):
+    """Standard CSV: ',' delimiter, '.' decimal — default behaviour."""
+    from openverto.geo import read_csv_file
+
+    p = tmp_path / "std.csv"
+    p.write_text("nome,est,nord\nroma,12.4924,41.8902\n", encoding="utf-8")
+    header, records = read_csv_file(str(p))
+    assert header == ["nome", "est", "nord"]
+    assert records == [["roma", "12.4924", "41.8902"]]
+
+
+def test_read_csv_invalid_decimal_raises(tmp_path):
+    import pytest
+
+    from openverto.geo import read_csv_file
+
+    p = tmp_path / "x.csv"
+    p.write_text("a,b\n1,2\n", encoding="utf-8")
+    with pytest.raises(ValueError):
+        read_csv_file(str(p), decimal=";")
+
+
+def test_read_csv_numeric_header_decimal_comma(tmp_path):
+    """Regression: an all-numeric ';' CSV with decimal comma must not be
+    mis-sniffed as comma-delimited (DuckDB's own sniffer gets this wrong)."""
+    from openverto.geo import read_csv_file
+
+    p = tmp_path / "num.csv"
+    p.write_text("lon;lat\n12,4924;41,8902\n", encoding="utf-8")
+    header, records = read_csv_file(str(p), decimal=",")
+    assert header == ["lon", "lat"]
+    assert records == [["12,4924", "41,8902"]]
+
+
+def test_read_csv_from_stdin(tmp_path, monkeypatch):
+    import io
+
+    from openverto.geo import read_csv_file
+
+    monkeypatch.setattr("sys.stdin", io.StringIO("lon;lat\n12,4924;41,8902\n"))
+    header, records = read_csv_file("-", decimal=",")
+    assert header == ["lon", "lat"]
+    assert records == [["12,4924", "41,8902"]]
+
+
+def test_resolve_column_by_alias_and_missing():
+    import pytest
+
+    from openverto.geo import E_ALIASES, resolve_column
+
+    header = ["nome", "est", "nord"]
+    assert resolve_column(header, "", E_ALIASES) == 1  # 'est' alias
+    assert resolve_column(header, "nord", ["n"]) == 2  # explicit name
+    with pytest.raises(ValueError):
+        resolve_column(header, "manca", E_ALIASES)

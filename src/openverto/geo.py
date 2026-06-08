@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import csv
 from typing import Callable
 
 from .transform import Coord, convert
@@ -92,13 +91,75 @@ def reproject_geojson(
     return _set_crs(doc, to_epsg)
 
 
-def read_csv_file(path: str) -> tuple[list[str], list[list[str]]]:
-    """Read a CSV file, returning ``(header, records)``."""
-    with open(path, newline="", encoding="utf-8-sig") as f:
-        rows = list(csv.reader(f))
-    if not rows:
-        raise ValueError("empty CSV file")
-    return rows[0], rows[1:]
+_DELIM_CANDIDATES = [",", ";", "\t", "|"]
+
+
+def _detect_delimiter(header_line: str, decimal: str) -> str:
+    """Pick the delimiter by counting candidates in the header line.
+
+    Column names rarely contain the delimiter, so the header is a reliable
+    signal. When the decimal separator is a comma, comma cannot be the
+    delimiter, so it is excluded — this is exactly the case DuckDB's own sniffer
+    gets wrong on all-numeric rows.
+    """
+    candidates = [d for d in _DELIM_CANDIDATES if not (decimal == "," and d == ",")]
+    counts = {d: header_line.count(d) for d in candidates}
+    best = max(counts, key=lambda d: counts[d])
+    if counts[best] == 0:
+        return ";" if decimal == "," else ","
+    return best
+
+
+def read_csv_file(path: str, *, decimal: str = ".") -> tuple[list[str], list[list[str]]]:
+    """Read a CSV via DuckDB, returning ``(header, records)`` as raw strings.
+
+    The delimiter (``,``, ``;``, tab, ``|``) is detected from the header line;
+    ``decimal`` is used only to exclude the comma as a delimiter candidate when
+    it is the decimal separator. Every cell is kept as its **original string**
+    (``read_csv`` with ``all_varchar``), so attribute columns like ``19.90`` or
+    ``1000,50`` are never reformatted — the caller normalises the decimal of the
+    coordinate columns only. NULL/empty cells become ``""``. ``path`` may be
+    ``-`` to read from standard input.
+    """
+    if decimal not in (".", ","):
+        raise ValueError(f"decimal separator must be '.' or ',', got {decimal!r}")
+    import os
+    import sys
+    import tempfile
+
+    import duckdb
+
+    tmp = None
+    if path == "-":
+        fd, tmp = tempfile.mkstemp(suffix=".csv")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(sys.stdin.read())
+        real = tmp
+    else:
+        real = path
+    try:
+        with open(real, encoding="utf-8-sig") as f:
+            first_line = f.readline()
+        if not first_line:
+            raise ValueError("empty CSV file")
+        delim = _detect_delimiter(first_line, decimal)
+        con = duckdb.connect()
+        try:
+            rel = con.execute(
+                "SELECT * FROM read_csv(?, header=true, delim=?, all_varchar=true)",
+                [real, delim],
+            )
+            header = [d[0] for d in rel.description]
+            rows = rel.fetchall()
+        except duckdb.Error as exc:
+            raise ValueError(f"could not read CSV: {exc}") from exc
+        finally:
+            con.close()
+    finally:
+        if tmp:
+            os.unlink(tmp)
+    records = [["" if v is None else str(v) for v in row] for row in rows]
+    return header, records
 
 
 def resolve_column(header: list[str], explicit: str, aliases: list[str]) -> int:
