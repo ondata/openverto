@@ -8,10 +8,11 @@ coordinates are ALWAYS decimal degrees.
 from __future__ import annotations
 
 import math
+import time
 from typing import Iterable, Sequence
 
 from . import cache
-from .base import MAX_COORD, VertoError, post
+from .base import MAX_COORD, VertoError, get_throttle, post
 from .refdata import REF_TABLE, datum_family, ref_by_epsg
 from .systems import system_by_epsg, systems
 
@@ -93,7 +94,10 @@ def convert(
         miss_idx.append(i)
         miss.append((e, n))
 
-    for start in range(0, len(miss), MAX_COORD):
+    multibatch = len(miss) > MAX_COORD
+    for k, start in enumerate(range(0, len(miss), MAX_COORD)):
+        if multibatch and k > 0 and get_throttle() > 0:
+            time.sleep(get_throttle())  # be kind to the free IGM service
         chunk = miss[start : start + MAX_COORD]
         got = _convert_chunk(from_epsg, to_epsg, chunk)
         for j, res in enumerate(got):
@@ -122,18 +126,23 @@ def convert_skipping(
     pairs = _to_pairs(coords)
     results: list[Coord | None] = [None] * len(pairs)
     skipped: list[int] = []
-    _convert_range(from_epsg, to_epsg, pairs, 0, results, skipped)
+    # Throttle only multi-batch jobs (> MAX_COORD); a single batch is never delayed.
+    gate = {"throttle": get_throttle() if len(pairs) > MAX_COORD else 0.0, "first": True}
+    _convert_range(from_epsg, to_epsg, pairs, 0, results, skipped, gate)
     return results, skipped
 
 
-def _convert_range(in_epsg, out_epsg, sub, offset, results, skipped) -> None:
+def _convert_range(in_epsg, out_epsg, sub, offset, results, skipped, gate) -> None:
     if not sub:
         return
     if len(sub) > MAX_COORD:
         mid = len(sub) // 2
-        _convert_range(in_epsg, out_epsg, sub[:mid], offset, results, skipped)
-        _convert_range(in_epsg, out_epsg, sub[mid:], offset + mid, results, skipped)
+        _convert_range(in_epsg, out_epsg, sub[:mid], offset, results, skipped, gate)
+        _convert_range(in_epsg, out_epsg, sub[mid:], offset + mid, results, skipped, gate)
         return
+    if gate["throttle"] and not gate["first"]:
+        time.sleep(gate["throttle"])  # be kind to the free IGM service
+    gate["first"] = False
     try:
         got = _convert_chunk(in_epsg, out_epsg, sub)
     except VertoError:
@@ -141,8 +150,8 @@ def _convert_range(in_epsg, out_epsg, sub, offset, results, skipped) -> None:
             skipped.append(offset)
             return
         mid = len(sub) // 2
-        _convert_range(in_epsg, out_epsg, sub[:mid], offset, results, skipped)
-        _convert_range(in_epsg, out_epsg, sub[mid:], offset + mid, results, skipped)
+        _convert_range(in_epsg, out_epsg, sub[:mid], offset, results, skipped, gate)
+        _convert_range(in_epsg, out_epsg, sub[mid:], offset + mid, results, skipped, gate)
         return
     for j, res in enumerate(got):
         results[offset + j] = res

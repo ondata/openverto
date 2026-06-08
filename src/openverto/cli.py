@@ -13,7 +13,7 @@ from rich.table import Table
 
 from . import __version__
 from . import cache as cache_mod
-from .base import VertoError, set_extra_headers, set_timeout
+from .base import VertoError, set_extra_headers, set_throttle, set_timeout
 from .transform import (
     MAX_COORD,
     convert as lib_convert,
@@ -56,7 +56,10 @@ app = typer.Typer(
         "Conversions between two systems of the SAME datum are rejected by the "
         "service; use 'targets' to list valid destinations.\n\n"
         "Global output: -o/--output table|json|jsonl|csv (jsonl is one compact "
-        "object per line, ideal for coordinates)."
+        "object per line, ideal for coordinates).\n\n"
+        "The IGM Verto Online service is free and public: please don't abuse it. "
+        "Jobs over 32000 coordinates are split into batches, spaced by --throttle "
+        "seconds (default 2); a single batch is never delayed. Set 0 to disable."
     ),
 )
 
@@ -198,6 +201,7 @@ def _version_cb(value: bool) -> None:
 def _main(
     output: str = typer.Option("table", "--output", "-o", help="table | json | jsonl | csv"),
     timeout: float = typer.Option(30.0, "--timeout", help="Per-request timeout in seconds"),
+    throttle: float = typer.Option(2.0, "--throttle", help="Seconds between batches for jobs over 32000 coords (be kind to the free IGM service; 0 to disable)"),
     header: Optional[list[str]] = typer.Option(None, "--header", "-H", help="Extra HTTP header 'Name: Value' (repeatable)"),
     version: bool = typer.Option(False, "--version", "-V", callback=_version_cb, is_eager=True, help="Show version and exit"),
 ) -> None:
@@ -206,6 +210,7 @@ def _main(
         _die(f"invalid --output {output!r}; choose table, json, jsonl, csv", EXIT_USAGE)
     _output = output
     set_timeout(timeout)
+    set_throttle(throttle)
     if header:
         parsed = {}
         for h in header:

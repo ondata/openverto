@@ -2,8 +2,17 @@
 
 from __future__ import annotations
 
+import pytest
+
+import openverto.base as basemod
 import openverto.transform as convmod
 from openverto.transform import convert, convert_skipping
+
+
+@pytest.fixture(autouse=True)
+def _no_throttle(monkeypatch):
+    """Disable the inter-request throttle so mocked-post tests stay instant."""
+    monkeypatch.setattr(basemod, "_throttle", 0.0)
 
 
 class FakePoster:
@@ -40,6 +49,24 @@ def test_convert_chunks(monkeypatch):
     out = convert(coords, 4265, 6706, use_cache=False)
     assert len(out) == 5
     assert fake.calls == 3  # 2 + 2 + 1
+
+
+def test_throttle_only_for_multibatch(monkeypatch):
+    """No pause for a single batch; a 2s pause between batches when > MAX_COORD."""
+    fake = FakePoster()
+    monkeypatch.setattr(convmod, "post", fake)
+    monkeypatch.setattr(convmod, "MAX_COORD", 2)
+    monkeypatch.setattr(basemod, "_throttle", 5.0)
+    sleeps: list[float] = []
+    monkeypatch.setattr(convmod.time, "sleep", lambda s: sleeps.append(s))
+
+    # single batch (2 <= MAX_COORD): never delayed
+    convert([(1, 1), (2, 2)], 4265, 6706, use_cache=False)
+    assert sleeps == []
+
+    # multi-batch (5 > 2 → 3 chunks): pause between the 3 batches → 2 sleeps
+    convert([(i, i) for i in range(5)], 4265, 6706, use_cache=False)
+    assert sleeps == [5.0, 5.0]
 
 
 def test_convert_skipping_isolates_offender(monkeypatch):

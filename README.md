@@ -137,6 +137,7 @@ Nessuna. Il servizio è libero e gratuito; i campi `utente`/`chiave` richiesti d
 - Le conversioni **tra sistemi con lo stesso datum** non sono ammesse dal servizio (vedi `targets`).
 - Il servizio accetta al massimo **32000 coordinate** per richiesta; `batch` esegue automaticamente il chunking.
 - La griglia IGM copre l'Italia e i mari circostanti: coordinate fuori copertura vengono rifiutate (usa `detect`/`inspect` per controllare assi e EPSG).
+- **Il servizio IGM è gratuito e pubblico: non abusarne.** Quando un job supera le **32000 coordinate** (il limite per richiesta) e viene quindi spezzato in più blocchi, openverto mette una pausa di **2 secondi tra un blocco e l'altro** (`--throttle`, o `set_throttle()` nella libreria). Una conversione singola (≤32000) non viene mai rallentata. `--throttle 0` disabilita la pausa, ma usalo con criterio.
 
 ## Crediti
 

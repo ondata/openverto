@@ -19,6 +19,7 @@ from .base import (
     get_extra_headers,
     set_base_url,
     set_extra_headers,
+    set_throttle,
     set_timeout,
 )
 from .transform import convert, convert_skipping, inspect, roundtrip, targets
@@ -41,6 +42,7 @@ __all__ = [
     "resolve_column",
     "rows_to_geojson",
     "set_timeout",
+    "set_throttle",
     "set_base_url",
     "set_extra_headers",
     "get_extra_headers",

@@ -30,6 +30,12 @@ _base_url = DEFAULT_BASE_URL
 _timeout = 30.0
 _extra_headers: dict[str, str] = {}
 
+#: Seconds to pause BETWEEN consecutive conversion batches when a single job
+#: spans more than one request (i.e. more than MAX_COORD coordinates). The IGM
+#: service is free and public — be a good citizen and don't hammer it. A single
+#: batch (<= MAX_COORD) is never delayed. Set to 0 to disable.
+_throttle = 2.0
+
 
 def set_base_url(url: str) -> None:
     """Override the service endpoint (useful for tests or a mirror)."""
@@ -49,6 +55,20 @@ def set_timeout(seconds: float) -> None:
 
 def get_timeout() -> float:
     return _timeout
+
+
+def set_throttle(seconds: float) -> None:
+    """Set the pause between conversion batches for multi-batch jobs (seconds).
+
+    Defaults to 2 s to avoid hammering the free IGM service. Only applies when a
+    job spans more than one request (> MAX_COORD coordinates). Pass 0 to disable.
+    """
+    global _throttle
+    _throttle = max(0.0, float(seconds))
+
+
+def get_throttle() -> float:
+    return _throttle
 
 
 def set_extra_headers(headers: dict[str, str]) -> None:

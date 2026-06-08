@@ -1,5 +1,11 @@
 # LOG
 
+## 2026-06-08 — v0.2.1 — throttle tra i blocchi
+
+- Aggiunto un **throttle** (default **2s**) tra i blocchi di conversione: scatta **solo** quando un job supera le 32000 coordinate (più richieste); una conversione singola non viene mai rallentata. Configurabile via `--throttle` (CLI) e `set_throttle()` (libreria), `0` per disabilitare.
+- Nota "non abusare" del servizio IGM gratuito nell'help della CLI e nel README.
+- Implementato in `convert` (pausa tra chunk) e `convert_skipping` (pausa tra richieste, solo job > MAX_COORD). +1 test (throttle solo multi-batch); fixture `_no_throttle` per non rallentare gli altri test. 23 test, ruff ok.
+
 ## 2026-06-08 — v0.2.0 — batch legge il CSV con DuckDB
 
 - `batch` ora legge il CSV di input via **DuckDB** (dipendenza core aggiunta): autodetect del delimitatore (`,`, `;`, tab, `|`) rilevato dalla **riga di header**, nuova opzione `--decimal` (`.` default, `,` per CSV italiani tipo `12,4924`), supporto **stdin** (`-`) e stdout (default senza `--out`).
