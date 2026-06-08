@@ -28,5 +28,6 @@ tmp.md
 # Reference material (e.g. third-party manuals, not for redistribution)
 ref/
 
-# Local video material
-video/
+# Local video material (keep only the published demo video)
+video/*
+!video/openverto-demo-v2.mp4
