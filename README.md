@@ -32,8 +32,8 @@ openverto convert --from 4265 --to 6706 12.4924 41.8902
 # asse, fuso e false easting prima di una conversione proiettata
 openverto inspect 3003
 
-# converti un CSV di punti Gauss-Boaga in RDN2008/TM32
-openverto batch points.csv --from 3003 --to 6707 --e-col est --n-col nord --out out.csv
+# converti un CSV di punti Gauss-Boaga (colonne est/nord) in RDN2008/TM32
+openverto batch catasto.csv --from 3003 --to 6707 --e-col est --n-col nord --out out.csv
 
 # riproietta le geometrie di un GeoJSON
 openverto geojson aree.geojson --from 4230 --to 6706 --out out.geojson

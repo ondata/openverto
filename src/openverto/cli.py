@@ -47,6 +47,14 @@ app = typer.Typer(
     help=(
         "openverto — official IGM coordinate transforms between Italian reference "
         "systems (Roma40, ED50, IGM95, ETRS89, RDN2008).\n\n"
+        "Axis order: coordinates are always 'e' (est = easting OR longitude) first, "
+        "'n' (nord = northing OR latitude) second. Geographic values are decimal "
+        "degrees. NOTE: this east-first order is the service's convention and is the "
+        "reverse of the EPSG-registry lat/long axis order of geographic CRS like "
+        "4265/4230/4670/6706 — pass longitude first. GeoJSON positions (x, y) "
+        "already equal (e, n), so reprojecting GeoJSON needs no swap.\n\n"
+        "Conversions between two systems of the SAME datum are rejected by the "
+        "service; use 'targets' to list valid destinations.\n\n"
         "Global output: -o/--output table|json|jsonl|csv (jsonl is one compact "
         "object per line, ideal for coordinates)."
     ),
@@ -280,10 +288,15 @@ def targets(epsg: str = typer.Argument(..., help="Source EPSG")):
 @app.command()
 def roundtrip(
     coords: Optional[list[str]] = typer.Argument(None, help="Coordinate pairs: e n [e n ...]"),
-    from_epsg: str = typer.Option(..., "--from"),
-    to_epsg: str = typer.Option(..., "--to"),
+    from_epsg: str = typer.Option(..., "--from", help="Source EPSG (e.g. 3003)"),
+    to_epsg: str = typer.Option(..., "--to", help="Round-trip-through EPSG, different datum (e.g. 6707)"),
 ):
-    """Convert A->B->A and report the residual error of the datum transform."""
+    """Convert A->B->A and report the residual error of the transform.
+
+    The residual is the gap between the original coordinate and itself after the
+    forward + inverse transform (datum shift + projection). residual_e/residual_n
+    are exact in the source unit; residual_m is an approximate distance in metres
+    (for geographic sources, a latitude-aware spherical approximation)."""
     in_e = _parse_epsg(from_epsg)
     out_e = _parse_epsg(to_epsg)
     pairs = _read_coord_args(coords or [])
@@ -308,8 +321,8 @@ def roundtrip(
 @app.command()
 def batch(
     file: str = typer.Argument(..., help="Input CSV file"),
-    from_epsg: str = typer.Option(..., "--from"),
-    to_epsg: str = typer.Option(..., "--to"),
+    from_epsg: str = typer.Option(..., "--from", help="Source EPSG (e.g. 3003)"),
+    to_epsg: str = typer.Option(..., "--to", help="Target EPSG, different datum (e.g. 6707)"),
     e_col: str = typer.Option("", "--e-col", help="East/longitude column (auto-detected if empty)"),
     n_col: str = typer.Option("", "--n-col", help="North/latitude column (auto-detected if empty)"),
     out: str = typer.Option("", "--out", help="Output file (default stdout)"),
@@ -394,11 +407,15 @@ def batch(
 @app.command()
 def geojson(
     file: str = typer.Argument(..., help="Input GeoJSON file ('-' for stdin)"),
-    from_epsg: str = typer.Option(..., "--from"),
-    to_epsg: str = typer.Option(..., "--to"),
+    from_epsg: str = typer.Option(..., "--from", help="Source EPSG of the input positions"),
+    to_epsg: str = typer.Option(..., "--to", help="Target EPSG, different datum"),
     out: str = typer.Option("", "--out", help="Output file (default stdout)"),
 ):
-    """Reproject every geometry coordinate in a GeoJSON file between systems."""
+    """Reproject every geometry coordinate in a GeoJSON file between systems.
+
+    GeoJSON positions (x, y) equal (e, n) — longitude, latitude for geographic
+    systems — matching the service's axis order directly, with no swap needed.
+    """
     in_e = _parse_epsg(from_epsg)
     out_e = _parse_epsg(to_epsg)
     try:
