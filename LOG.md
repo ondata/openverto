@@ -19,4 +19,4 @@
 - Confronto con `gdaltransform` (PROJ senza griglie): nessun erroraccio, scarto datum 0.1–2.8 m come atteso (IGM95→RDN2008 a 0.11 m conferma datum/assi corretti). Vedi `docs/evaluation.md` + test di regressione skippable.
 - CI (`.github/workflows/ci.yml`), `docs/release.md` (tag + twine), `.gitignore`, `LICENSE` MIT.
 - Repo pubblico creato: https://github.com/ondata/openverto (branch `main`, CI attiva).
-- TODO: primo tag `v0.1.0` + pubblicazione PyPI via twine (procedura in `docs/release.md`) — da lanciare a mano con il token PyPI.
+- ~~TODO: primo tag + pubblicazione PyPI~~ → fatto con **v0.1.1**: https://pypi.org/project/openverto/0.1.1/ (la 0.1.0 non è mai stata pubblicata).
