@@ -1,6 +1,6 @@
 [project]
 name = "openverto"
-version = "0.2.2"
+version = "0.2.3"
 description = "Python CLI and library for the official IGM Verto Online coordinate transforms between Italian reference systems"
 readme = "README.md"
 authors = [

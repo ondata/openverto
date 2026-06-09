@@ -1,5 +1,9 @@
 # LOG
 
+## 2026-06-09 — v0.2.3 — annotazione `_die` come `NoReturn`
+
+- `cli.py`: `_die` ora annotato `-> NoReturn` invece di `-> None`; i type checker non segnalano più `valid_targets` come potenzialmente non assegnata.
+
 ## 2026-06-09 — v0.2.2 — validazione upfront target in `batch`
 
 - `batch`: check immediato che `--to` sia un target valido per `--from`; fallisce prima di leggere il CSV con messaggio chiaro (`Run 'openverto targets <from>'`).
