@@ -159,3 +159,45 @@ def test_resolve_column_by_alias_and_missing():
     assert resolve_column(header, "nord", ["n"]) == 2  # explicit name
     with pytest.raises(ValueError):
         resolve_column(header, "manca", E_ALIASES)
+
+
+def test_batch_rejects_invalid_target(tmp_path):
+    """batch must fail upfront when --to is not a valid target for --from."""
+    from typer.testing import CliRunner
+
+    from openverto.cli import app
+
+    p = tmp_path / "coords.csv"
+    p.write_text("lon,lat\n12.0,41.0\n", encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["batch", str(p), "--from", "23033", "--to", "32633"])
+    normalized = " ".join(result.output.split())
+    assert result.exit_code != 0
+    assert "32633" in normalized
+    assert "23033" in normalized
+    assert "targets 23033" in normalized
+
+
+def test_batch_accepts_valid_target_combination(tmp_path, monkeypatch):
+    """batch must pass the target check for a known-valid from/to pair."""
+    import openverto.transform as convmod
+
+    def fake_post(body):
+        return {
+            "stato": "successo",
+            "coordinate": [{"e": c["e"] + 0.001, "n": c["n"] + 0.002} for c in body["coordinate"]],
+        }
+
+    monkeypatch.setattr(convmod, "post", fake_post)
+
+    from typer.testing import CliRunner
+
+    from openverto.cli import app
+
+    p = tmp_path / "coords.csv"
+    p.write_text("lon,lat\n290000.0,4640000.0\n", encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["batch", str(p), "--from", "23033", "--to", "6706"])
+    assert result.exit_code == 0

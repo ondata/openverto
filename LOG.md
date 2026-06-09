@@ -1,5 +1,10 @@
 # LOG
 
+## 2026-06-09 — v0.2.2 — validazione upfront target in `batch`
+
+- `batch`: check immediato che `--to` sia un target valido per `--from`; fallisce prima di leggere il CSV con messaggio chiaro (`Run 'openverto targets <from>'`).
+- 2 nuovi test offline (`test_batch_rejects_invalid_target`, `test_batch_accepts_valid_target_combination`).
+
 ## 2026-06-09 — docs: disclaimer non-affiliazione + nota Z/M planimetrica
 
 - Spunti da `sag1687/geobridge` (plugin QGIS per lo stesso servizio IGM): aggiunti due punti che mancavano.
