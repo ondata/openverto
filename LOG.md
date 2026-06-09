@@ -1,5 +1,10 @@
 # LOG
 
+## 2026-06-09 — docs: riferimento CLI completo
+
+- Aggiunta `docs/cli.md`: guida completa a tutti i comandi e opzioni (opzioni globali, codici di uscita, comportamento `--skip-invalid`, gotcha ordine assi, output strutturato in `batch`).
+- README: aggiunto link al riferimento CLI sopra la tabella dei comandi.
+
 ## 2026-06-08 — v0.2.1 — throttle tra i blocchi
 
 - Aggiunto un **throttle** (default **2s**) tra i blocchi di conversione: scatta **solo** quando un job supera le 32000 coordinate (più richieste); una conversione singola non viene mai rallentata. Configurabile via `--throttle` (CLI) e `set_throttle()` (libreria), `0` per disabilitare.

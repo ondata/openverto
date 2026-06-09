@@ -86,6 +86,8 @@ openverto -o csv convert ...      # CSV
 
 ## Comandi
 
+Tutte le opzioni sono documentate nel [**riferimento CLI completo**](docs/cli.md).
+
 | Comando | Descrizione |
 |---|---|
 | `systems` | Elenco dei sistemi di riferimento supportati (EPSG + descrizione) |
