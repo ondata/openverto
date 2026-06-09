@@ -22,6 +22,14 @@ Come strumento CLI (consigliato):
 uv tool install openverto
 ```
 
+> Se non hai `uv`, consulta la [guida di installazione](https://docs.astral.sh/uv/getting-started/installation/).
+
+oppure con pip:
+
+```bash
+pip install openverto
+```
+
 Come libreria:
 
 ```bash
