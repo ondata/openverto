@@ -12,9 +12,8 @@ CLI e libreria Python per il servizio ufficiale **[IGM Verto Online](https://igm
 
 Pensato per essere **orchestrato da agenti AI**: output `--json`/`--jsonl`/`--csv`, non interattivo, pipeable, read-only. L'intelligenza sugli EPSG (`inspect`, `detect`, `targets`) è completamente **offline**.
 
-> **Con un'AI.** openverto può essere usato anche tramite un AI, che leggerà il suo help per capirne il funzionamento. Il repo include anche la Agent Skill [`verto-explorer`](skills/verto-explorer/SKILL.md), che si installa così:
->
-> Vedi la [guida d'installazione](docs/skill/README.md) per dettagli e alternative.
+> **Con un'AI.** openverto può essere usato anche tramite un AI, che leggerà il suo help per capirne il funzionamento. Il repo include anche la Agent Skill [`verto-explorer`](skills/verto-explorer/SKILL.md), che si [installa così](docs/skill/README.md).
+
 
 ## Installazione
 
