@@ -153,7 +153,8 @@ Nessuna. Il servizio è libero e gratuito; i campi `utente`/`chiave` richiesti d
 
 openverto si appoggia all'API pubblica di IGM Verto Online, che non ha una
 documentazione OpenAPI ufficiale. Ne abbiamo ricostruita una **non ufficiale**
-per reverse engineering, leggibile e con esempi: [`docs/openapi.yaml`](docs/openapi.yaml).
+per reverse engineering, leggibile e con esempi: [`docs/openapi.yaml`](docs/openapi.yaml)
+([sfogliala su Redoc](https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/ondata/openverto/main/docs/openapi.yaml)).
 
 ## Crediti
 
