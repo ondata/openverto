@@ -1,0 +1,297 @@
+openapi: 3.1.0
+
+info:
+  title: IGM Verto Online API
+  version: "1.0.0"
+  summary: Conversione di coordinate tra i sistemi di riferimento italiani.
+  description: |
+    Documentazione **non ufficiale** dell'API del servizio
+    [IGM Verto Online](https://igmi.esercito.difesa.it/servizi/verto-online/)
+    dell'Istituto Geografico Militare, ricostruita per reverse engineering a
+    partire dal manuale ufficiale e dall'osservazione delle richieste reali.
+
+    Il servizio converte coordinate tra tutti i sistemi di riferimento italiani
+    (Roma40/Monte Mario, ED50, IGM95, ETRS89, RDN2008) appoggiandosi alle
+    griglie NTv2 ufficiali, **senza doverle installare in locale**.
+
+    ## Modello dell'API
+
+    Il servizio espone **un solo endpoint** che riceve richieste POST in JSON e
+    risponde in JSON. Non è un'API REST con più risorse: il tipo di operazione è
+    scelto dal campo `richiesta` nel corpo della richiesta, che vale `info`
+    (elenco dei sistemi supportati) oppure `conversione` (trasformazione di un
+    insieme di coordinate).
+
+    ## Punti da conoscere
+
+    - **Ordine degli assi: `e` (est) prima, `n` (nord) dopo.** Per i sistemi
+      proiettati `e` è l'easting e `n` il northing (in metri); per i sistemi
+      geografici `e` è la **longitudine** e `n` la **latitudine** (in gradi
+      sessadecimali). Attenzione: per i CRS geografici questo è l'inverso
+      dell'ordine lat/long del registro EPSG — la longitudine va sempre per prima.
+    - **Gli errori arrivano con HTTP 200.** Un fallimento applicativo non usa i
+      codici di stato HTTP 4xx/5xx: la risposta è comunque `200 OK` e contiene
+      `"stato": "errore"`. Vanno distinti dalla forma di successo leggendo il
+      corpo.
+    - **`utente` e `chiave` sono obbligatori ma ignorati.** Non sono credenziali
+      di autenticazione: il servizio li richiede ma non li verifica. Vanno
+      riempiti con qualsiasi valore segnaposto.
+    - **Limite di 32000 coordinate per richiesta** (`maxCoord`). Job più grandi
+      vanno spezzati in più richieste dal client.
+    - **Le conversioni tra sistemi con lo stesso datum non sono supportate**
+      (es. da `RDN2008 2D geo` a `RDN2008 / TM32`) e vengono rifiutate.
+    - **Copertura della griglia: Italia e mari circostanti.** Coordinate fuori
+      copertura vengono rifiutate dal motore PROJ sottostante.
+  contact:
+    name: IGM — Istituto Geografico Militare
+    url: https://igmi.esercito.difesa.it/servizi/verto-online/
+  license:
+    name: Servizio pubblico e gratuito IGM
+    url: https://igmi.esercito.difesa.it/servizi/verto-online/
+
+servers:
+  - url: https://igmi.esercito.difesa.it
+    description: Endpoint di produzione IGM Verto Online
+
+# Il servizio non richiede autenticazione: i campi utente/chiave sono segnaposto.
+security: []
+
+paths:
+  /porta-magna/wps/volapi:
+    post:
+      operationId: volapi
+      summary: Endpoint unico (info o conversione)
+      description: |
+        Unico endpoint del servizio. L'operazione effettiva è determinata dal
+        campo `richiesta` nel corpo:
+
+        - `richiesta: "info"` → elenco dei sistemi di riferimento supportati e
+          numero massimo di coordinate per richiesta.
+        - `richiesta: "conversione"` → trasformazione di un vettore di
+          coordinate da `inEpsg` a `outEpsg`.
+
+        La risposta è sempre `200 OK`, anche in caso di errore applicativo:
+        controllare il campo `stato` (presente nelle risposte di conversione) o
+        la forma del corpo per distinguere successo ed errore.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/InfoRequest"
+                - $ref: "#/components/schemas/ConversioneRequest"
+              discriminator:
+                propertyName: richiesta
+                mapping:
+                  info: "#/components/schemas/InfoRequest"
+                  conversione: "#/components/schemas/ConversioneRequest"
+            examples:
+              info:
+                summary: Richiesta dei sistemi supportati
+                value:
+                  richiesta: info
+              conversione:
+                summary: Conversione Monte Mario (4265) → RDN2008 (6706)
+                value:
+                  richiesta: conversione
+                  utente: openverto
+                  chiave: openverto
+                  inEpsg: 4265
+                  outEpsg: 6706
+                  coordinate:
+                    - { e: 7.000, n: 37.000 }
+                    - { e: 12.000, n: 42.000 }
+                    - { e: 16.000, n: 45.000 }
+      responses:
+        "200":
+          description: |
+            Risposta dell'operazione. La forma dipende dalla richiesta e
+            dall'esito; **anche gli errori applicativi usano questo stato HTTP**.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/InfoResponse"
+                  - $ref: "#/components/schemas/ConversioneSuccessResponse"
+                  - $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                info:
+                  summary: Risposta a una richiesta info
+                  value:
+                    maxCoord: 32000
+                    srsSupportati:
+                      - { epsg: 4265, descrizione: "Monte Mario" }
+                      - { epsg: 3003, descrizione: "Monte Mario / Italy zone 1" }
+                      - { epsg: 3004, descrizione: "Monte Mario / Italy zone 2" }
+                      - { epsg: 4230, descrizione: "ED50" }
+                      - { epsg: 23032, descrizione: "ED50 / UTM zone 32N" }
+                      - { epsg: 6706, descrizione: "RDN2008" }
+                      - { epsg: 7794, descrizione: "RDN2008 / Italy Zone EN" }
+                conversione-successo:
+                  summary: Conversione riuscita
+                  value:
+                    stato: successo
+                    coordinate:
+                      - { e: 6.9996175526, n: 37.0006110152 }
+                      - { e: 11.9997804498, n: 42.0006477023 }
+                      - { e: 15.9999259776, n: 45.0006501430 }
+                errore-campo-mancante:
+                  summary: Errore — manca un attributo della coordinata
+                  value:
+                    stato: errore
+                    dove: "coordinate, elemento n. 2"
+                    messaggio: "Manca l'elemento 'n'"
+                errore-fuori-griglia:
+                  summary: Errore — coordinata fuori dalla copertura della griglia
+                  value:
+                    stato: errore
+                    dove: "Proj"
+                    messaggio: "Coordinate outside grid"
+
+components:
+  schemas:
+
+    InfoRequest:
+      type: object
+      description: Richiesta dell'elenco dei sistemi di riferimento supportati.
+      required: [richiesta]
+      properties:
+        richiesta:
+          type: string
+          const: info
+          description: Discriminatore dell'operazione. Per questa richiesta vale `info`.
+      examples:
+        - richiesta: info
+
+    ConversioneRequest:
+      type: object
+      description: |
+        Richiesta di conversione di un vettore di coordinate da un sistema di
+        riferimento a un altro.
+      required: [richiesta, utente, chiave, inEpsg, outEpsg, coordinate]
+      properties:
+        richiesta:
+          type: string
+          const: conversione
+          description: Discriminatore dell'operazione. Per questa richiesta vale `conversione`.
+        utente:
+          type: string
+          description: |
+            Obbligatorio ma **ignorato** dal servizio: non è un'autenticazione.
+            Riempire con un valore segnaposto qualsiasi.
+          example: openverto
+        chiave:
+          type: string
+          description: |
+            Obbligatorio ma **ignorato** dal servizio: non è una chiave di
+            autenticazione. Riempire con un valore segnaposto qualsiasi.
+          example: openverto
+        inEpsg:
+          type: integer
+          description: Codice EPSG del sistema di riferimento di **origine**.
+          example: 4265
+        outEpsg:
+          type: integer
+          description: |
+            Codice EPSG del sistema di riferimento di **destinazione**. Deve
+            appartenere a un **datum diverso** da `inEpsg`: le conversioni tra
+            sistemi con lo stesso datum non sono supportate.
+          example: 6706
+        coordinate:
+          type: array
+          description: |
+            Vettore delle coordinate da convertire. Al massimo `maxCoord`
+            (32000) elementi per richiesta.
+          minItems: 1
+          maxItems: 32000
+          items:
+            $ref: "#/components/schemas/Coordinate"
+
+    Coordinate:
+      type: object
+      description: |
+        Una coppia di coordinate. `e` (est) per prima, `n` (nord) per seconda.
+        Per i sistemi geografici `e` è la longitudine e `n` la latitudine, in
+        gradi sessadecimali; per i sistemi proiettati sono easting e northing in
+        metri.
+      required: [e, n]
+      properties:
+        e:
+          type: number
+          description: Est — easting (m) oppure longitudine (gradi sessadecimali).
+          example: 12.000
+        n:
+          type: number
+          description: Nord — northing (m) oppure latitudine (gradi sessadecimali).
+          example: 42.000
+
+    InfoResponse:
+      type: object
+      description: Risposta a una richiesta `info`.
+      required: [maxCoord, srsSupportati]
+      properties:
+        maxCoord:
+          type: integer
+          description: Numero massimo di coordinate convertibili in una singola richiesta.
+          example: 32000
+        srsSupportati:
+          type: array
+          description: Elenco dei sistemi di riferimento supportati dal servizio.
+          items:
+            $ref: "#/components/schemas/Srs"
+
+    Srs:
+      type: object
+      description: Un sistema di riferimento supportato.
+      required: [epsg, descrizione]
+      properties:
+        epsg:
+          type: integer
+          description: Codice EPSG del sistema di riferimento.
+          example: 4265
+        descrizione:
+          type: string
+          description: Descrizione testuale del sistema di riferimento.
+          example: Monte Mario
+
+    ConversioneSuccessResponse:
+      type: object
+      description: |
+        Risposta a una conversione riuscita. Il vettore `coordinate` ha la
+        stessa lunghezza e lo stesso ordine di quello in ingresso.
+      required: [stato, coordinate]
+      properties:
+        stato:
+          type: string
+          const: successo
+          description: Esito dell'operazione. In caso di successo vale `successo`.
+        coordinate:
+          type: array
+          description: Coordinate convertite nel sistema di destinazione, nello stesso ordine dell'input.
+          items:
+            $ref: "#/components/schemas/Coordinate"
+
+    ErrorResponse:
+      type: object
+      description: |
+        Risposta di errore applicativo. **Restituita comunque con HTTP 200**:
+        l'errore si riconosce dal campo `stato` uguale a `errore`.
+      required: [stato, messaggio]
+      properties:
+        stato:
+          type: string
+          const: errore
+          description: Esito dell'operazione. In caso di errore vale `errore`.
+        dove:
+          type: string
+          description: |
+            Indicazione testuale del punto in cui si è verificato l'errore.
+            Esempi osservati: `coordinate, elemento n. 2` (problema su una
+            coordinata specifica) e `Proj` (rifiuto dal motore PROJ, tipicamente
+            una coordinata fuori dalla copertura della griglia).
+          example: "Proj"
+        messaggio:
+          type: string
+          description: Descrizione testuale dell'errore.
+          example: "Coordinate outside grid"

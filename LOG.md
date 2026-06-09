@@ -1,5 +1,11 @@
 # LOG
 
+## 2026-06-09 — docs: spec OpenAPI dell'API IGM (reverse engineering)
+
+- Aggiunta `docs/openapi.yaml`: documentazione OpenAPI 3.1.0 **non ufficiale** dell'endpoint IGM Verto Online, ricostruita dal manuale (`ref/`) e dal codice. Modella fedelmente il servizio RPC: **un solo path POST** discriminato da `richiesta` (`info`/`conversione`), **errori in HTTP 200** con `stato: errore`, `utente`/`chiave` obbligatori ma ignorati, ordine assi e-prima, limite 32000, no conversioni stesso datum. Esempi nominati dal manuale (typo `"x"`→`"n"` corretto). `security: []` (servizio senza auth).
+- Validata con `openapi-spec-validator` (OK) e `redocly lint` (solo warning 4xx, lasciato di proposito: il servizio non usa 4xx).
+- README: nuova sezione "API del servizio IGM" che linka la spec.
+
 ## 2026-06-09 — docs: riferimento CLI completo
 
 - Aggiunta `docs/cli.md`: guida completa a tutti i comandi e opzioni (opzioni globali, codici di uscita, comportamento `--skip-invalid`, gotcha ordine assi, output strutturato in `batch`).
