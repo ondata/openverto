@@ -397,7 +397,7 @@ def batch(
     in_e = _parse_epsg(from_epsg)
     out_e = _parse_epsg(to_epsg)
     try:
-        valid_targets = lib_targets(in_e)
+        valid_targets = lib_targets(in_e, with_live=False)
     except KeyError:
         _die(f"EPSG {in_e} is not IGM-supported; run 'openverto systems'", EXIT_NOT_FOUND)
     if out_e not in {r["epsg"] for r in valid_targets}:
