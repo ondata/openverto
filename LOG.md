@@ -1,5 +1,11 @@
 # LOG
 
+## 2026-06-09 — docs: disclaimer non-affiliazione + nota Z/M planimetrica
+
+- Spunti da `sag1687/geobridge` (plugin QGIS per lo stesso servizio IGM): aggiunti due punti che mancavano.
+- README: nuova sezione **Disclaimer** (strumento indipendente/non ufficiale, non affiliato IGM; servizio/dati/risultati restano proprietà IGM; link alle condizioni d'uso ufficiali).
+- README: nota in "Note tecniche" — la conversione IGM è **planimetrica**, le quote Z/M non vengono trasformate; openverto le preserva inalterate nei GeoJSON.
+
 ## 2026-06-09 — docs: spec OpenAPI dell'API IGM (reverse engineering)
 
 - Aggiunta `docs/openapi.yaml`: documentazione OpenAPI 3.1.0 **non ufficiale** dell'endpoint IGM Verto Online, ricostruita dal manuale (`ref/`) e dal codice. Modella fedelmente il servizio RPC: **un solo path POST** discriminato da `richiesta` (`info`/`conversione`), **errori in HTTP 200** con `stato: errore`, `utente`/`chiave` obbligatori ma ignorati, ordine assi e-prima, limite 32000, no conversioni stesso datum. Esempi nominati dal manuale (typo `"x"`→`"n"` corretto). `security: []` (servizio senza auth).

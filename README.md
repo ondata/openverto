@@ -144,6 +144,7 @@ Nessuna. Il servizio è libero e gratuito; i campi `utente`/`chiave` richiesti d
 ## Note tecniche
 
 - Le coordinate geografiche sono **sempre in gradi sessadecimali**.
+- La conversione IGM è **planimetrica**: le quote **Z/M non vengono trasformate**. openverto le preserva inalterate nei GeoJSON (riproietta solo x/y).
 - Le conversioni **tra sistemi con lo stesso datum** non sono ammesse dal servizio (vedi `targets`).
 - Il servizio accetta al massimo **32000 coordinate** per richiesta; `batch` esegue automaticamente il chunking.
 - La griglia IGM copre l'Italia e i mari circostanti: coordinate fuori copertura vengono rifiutate (usa `detect`/`inspect` per controllare assi e EPSG).
@@ -155,6 +156,12 @@ openverto si appoggia all'API pubblica di IGM Verto Online, che non ha una
 documentazione OpenAPI ufficiale. Ne abbiamo ricostruita una **non ufficiale**
 per reverse engineering, leggibile e con esempi: [`docs/openapi.yaml`](docs/openapi.yaml)
 ([sfogliala su Redoc](https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/ondata/openverto/main/docs/openapi.yaml)).
+
+## Disclaimer
+
+openverto è uno strumento **indipendente** e **non ufficiale**: **non** è sviluppato, approvato, certificato o distribuito dall'**Istituto Geografico Militare (IGM)**. Agisce esclusivamente come client verso un endpoint pubblico.
+
+Il servizio API, l'infrastruttura, gli algoritmi di calcolo e i risultati delle elaborazioni restano di esclusiva proprietà dell'IGM. L'uso del servizio tramite openverto è soggetto alle [condizioni d'uso ufficiali pubblicate da IGM](https://igmi.esercito.difesa.it/servizi/verto-online/); l'invio di coordinate all'endpoint implica l'accettazione di tali condizioni.
 
 ## Crediti
 
