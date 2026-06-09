@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import json
 import sys
-from typing import Optional
+from typing import NoReturn, Optional
 
 import typer
 from rich.console import Console
@@ -121,7 +121,7 @@ def _emit_table(data, *, title: str | None = None) -> None:
     console.print(t)
 
 
-def _die(msg: str, code: int) -> None:
+def _die(msg: str, code: int) -> NoReturn:
     err.print(f"[red]error:[/red] {msg}")
     raise typer.Exit(code)
 
