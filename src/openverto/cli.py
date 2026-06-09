@@ -396,6 +396,16 @@ def batch(
     """
     in_e = _parse_epsg(from_epsg)
     out_e = _parse_epsg(to_epsg)
+    try:
+        valid_targets = lib_targets(in_e, with_live=False)
+    except KeyError:
+        _die(f"EPSG {in_e} is not IGM-supported; run 'openverto systems'", EXIT_NOT_FOUND)
+    if out_e not in {r["epsg"] for r in valid_targets}:
+        _die(
+            f"EPSG {out_e} is not a valid target for EPSG {in_e}. "
+            f"Run 'openverto targets {in_e}' to see valid options.",
+            EXIT_USAGE,
+        )
     if fmt not in ("csv", "geojson"):
         _die(f"--format must be 'csv' or 'geojson', got {fmt!r}", EXIT_USAGE)
     try:
