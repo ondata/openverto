@@ -173,6 +173,16 @@ openverto batch points.csv --from 3003 --to 6706 --format geojson --out out.geoj
 cat comuni.csv | openverto batch - --from 4265 --to 6706 --decimal ,
 ```
 
+#### Stimare la qualità della conversione
+
+Il servizio IGM non restituisce metriche di errore per punto. Per stimare la qualità dopo un `batch`, usa `roundtrip` su un campione del file originale: converte A→B→A e riporta il residuo in metri per ogni punto.
+
+```bash
+# campiona 20 righe casuali e verifica il roundtrip (richiede DuckDB)
+duckdb -c "COPY (SELECT x, y FROM read_csv_auto('input.csv') USING SAMPLE 20) TO '/dev/stdout' (HEADER false)" \
+  | openverto roundtrip --from 23033 --to 6708
+```
+
 ---
 
 ### `geojson` — riproiezione di un file GeoJSON
