@@ -13,6 +13,7 @@ Service-level errors are returned inside an HTTP 200 body as
 
 from __future__ import annotations
 
+import json
 import time
 
 import httpx
@@ -108,6 +109,22 @@ class VertoError(Exception):
         return "outside grid" in m or "griglia" in m
 
 
+def _salvage_json(text: str) -> dict | None:
+    """Extract the first JSON object from a body polluted by extra output.
+
+    Returns ``None`` when nothing parseable is found, so the caller can keep
+    raising its original diagnostic.
+    """
+    start = text.find("{")
+    if start < 0:
+        return None
+    try:
+        obj, _ = json.JSONDecoder().raw_decode(text[start:])
+    except ValueError:
+        return None
+    return obj if isinstance(obj, dict) else None
+
+
 def post(body: dict, *, retries: int = 2) -> dict:
     """POST a request body to the Verto endpoint and return the parsed JSON.
 
@@ -133,6 +150,13 @@ def post(body: dict, *, retries: int = 2) -> dict:
             try:
                 return resp.json()
             except ValueError as exc:
+                # The service has been observed prefixing the JSON body with a
+                # stray debug line (e.g. "QUERY: INSERT INTO vol.log ..."), which
+                # makes a strict parse fail. Recover the first JSON object in the
+                # body, tolerating junk before and after it.
+                salvaged = _salvage_json(resp.text)
+                if salvaged is not None:
+                    return salvaged
                 raise ValueError(f"invalid JSON from Verto service: {exc}") from exc
         except (httpx.TransportError, httpx.HTTPStatusError) as exc:
             last_exc = exc

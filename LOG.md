@@ -1,5 +1,12 @@
 # LOG
 
+## 2026-09-11 — v0.2.4 — tollera la risposta malformata del servizio IGM
+
+- Il servizio IGM ha iniziato a prependere al JSON della `conversione` una riga di debug del proprio log applicativo (`QUERY: INSERT INTO vol.log (email, num_vertices) VALUES ('openverto', 1)`, dove il valore è il campo `utente` inviato dal client). `Content-Type: application/json` e HTTP 200 restano corretti, ma `resp.json()` falliva: **ogni conversione non già in cache** usciva con `invalid JSON from Verto service`. Il ramo `info` (`openverto systems`) non è interessato, per questo il guasto sembrava intermittente.
+- `base.post`: aggiunto `_salvage_json`, che sul fallimento del parse rigoroso estrae il primo oggetto JSON del corpo con `raw_decode` dal primo `{`, tollerando spazzatura prima e dopo. Il messaggio d'errore originale resta invariato quando non c'è nulla di parseabile. Il fix sta in `post`, unico punto del progetto che usa `httpx`, quindi copre `convert`, `batch`, `geojson` e `systems`.
+- 3 nuovi test HTTP-level su `post` via `httpx.MockTransport` (prefisso verbatim, spazzatura in coda, corpo non-JSON). 28 test, ruff ok. Verificato live: `convert`, `batch` e `geojson` con cache vuota.
+- `docs/openapi.yaml`: documentato il comportamento osservato fra i punti da conoscere.
+
 ## 2026-06-09 — v0.2.3 — annotazione `_die` come `NoReturn`
 
 - `cli.py`: `_die` ora annotato `-> NoReturn` invece di `-> None`; i type checker non segnalano più `valid_targets` come potenzialmente non assegnata.
