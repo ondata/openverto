@@ -1,5 +1,11 @@
 # LOG
 
+## 2026-09-11 — CI: controllo schedulato contro il servizio IGM
+
+- `.github/workflows/live.yml`: la suite live (`pytest -m live`) gira ogni giorno alle 06:17 UTC e apre una issue quando fallisce. Colma il buco che ha fatto passare la v0.2.4: i test live sono esclusi dalla CI normale (`addopts = "-m 'not live'"`) e la CI parte solo su push e PR, quindi un cambiamento lato IGM non coincide con nessun evento del repo e non poteva farsi notare.
+- Due accortezze perché l'allarme resti leggibile: un secondo tentativo dopo 60 secondi, così un disservizio di un minuto non apre una issue; e una sola issue aperta alla volta, con i controlli successivi che la commentano invece di aprirne altre.
+- Il corpo della issue sta in `.github/live-failure-issue.md` e dice cosa guardare nell'ordine, partendo dal `curl` che mostra il corpo grezzo di una risposta di conversione.
+
 ## 2026-09-11 — automazioni: hook di sincronia del lock e skill `/release`
 
 - `.claude/hooks/lock-version-sync.sh`: hook `PostToolUse` che dopo un edit a `pyproject.toml` confronta la versione del progetto con quella registrata in `uv.lock` e, se divergono, chiede di rifare `uv lock`. È il difetto che è sfuggito nel rilascio della v0.2.4, dove il bump era arrivato da una PR e il lock era rimasto a 0.2.3. Il nome del pacchetto non è cablato, lo legge da `pyproject.toml`. Provato sui tre casi: allineati, disallineati, file non pertinente.

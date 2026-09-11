@@ -1,0 +1,79 @@
+name: Live service check
+
+# I test live non girano nella CI normale (`addopts = "-m 'not live'"`), e la CI
+# parte solo su push e PR. Ma il servizio IGM e' di terzi: quando cambia non
+# coincide con un nostro commit, quindi nessun evento lo farebbe notare. E'
+# andata cosi' con la v0.2.4, scoperta a mano giorni dopo.
+#
+# Questo workflow gira a cadenza fissa contro il servizio reale e apre una issue
+# quando fallisce.
+
+on:
+  schedule:
+    # Ogni giorno alle 06:17 UTC. Minuti spostati dall'ora tonda di proposito:
+    # lo scheduler di GitHub accumula ritardo sui cron allineati allo scoccare.
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: uv sync
+
+      # La suite live e' 9 test e una decina di richieste. Il servizio IGM e'
+      # gratuito e pubblico: una volta al giorno basta per accorgersene presto
+      # senza pesare. Il secondo tentativo serve a non aprire una issue per un
+      # disservizio di un minuto.
+      - name: Run live tests
+        run: |
+          set +e
+          uv run pytest -m live
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo "::warning::Primo tentativo fallito (rc=$rc). Riprovo fra 60s per escludere un disservizio momentaneo."
+            sleep 60
+            uv run pytest -m live
+            rc=$?
+          fi
+          exit "$rc"
+
+      - name: Report the failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create live-tests --force \
+            --color B60205 \
+            --description "Il servizio IGM non risponde come atteso"
+
+          # Una issue aperta alla volta: un cron giornaliero che ne apre una al
+          # giorno seppellisce il segnale che dovrebbe dare.
+          existing=$(gh issue list --label live-tests --state open --limit 1 \
+            --json number --jq '.[0].number // empty')
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" \
+              --body "Ancora rosso al controllo del $(date -u '+%Y-%m-%d %H:%M UTC'). Esecuzione: $RUN_URL"
+            exit 0
+          fi
+
+          {
+            cat .github/live-failure-issue.md
+            printf '\nEsecuzione che ha fallito: %s\n' "$RUN_URL"
+          } > /tmp/issue-body.md
+
+          gh issue create \
+            --label live-tests \
+            --title "I test live contro il servizio IGM stanno fallendo" \
+            --body-file /tmp/issue-body.md
