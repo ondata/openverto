@@ -246,3 +246,9 @@ def test_post_keeps_diagnostic_on_unparseable_body(monkeypatch):
 
     with pytest.raises(ValueError, match="invalid JSON from Verto service"):
         _post_with_body(monkeypatch, "<html>service unavailable</html>")
+
+
+def test_post_parses_clean_body_unchanged(monkeypatch):
+    """If the service stops polluting the body, the strict path still works."""
+    resp = _post_with_body(monkeypatch, '{"maxCoord": 32000, "srsSupportati": []}')
+    assert resp == {"maxCoord": 32000, "srsSupportati": []}
