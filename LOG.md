@@ -1,5 +1,12 @@
 # LOG
 
+## 2026-09-11 — automazioni: hook di sincronia del lock e skill `/release`
+
+- `.claude/hooks/lock-version-sync.sh`: hook `PostToolUse` che dopo un edit a `pyproject.toml` confronta la versione del progetto con quella registrata in `uv.lock` e, se divergono, chiede di rifare `uv lock`. È il difetto che è sfuggito nel rilascio della v0.2.4, dove il bump era arrivato da una PR e il lock era rimasto a 0.2.3. Il nome del pacchetto non è cablato, lo legge da `pyproject.toml`. Provato sui tre casi: allineati, disallineati, file non pertinente.
+- `.claude/skills/release/SKILL.md`: la procedura di `docs/release.md` come skill, con `disable-model-invocation: true`. Il flag è il punto, non un dettaglio: un upload su PyPI non deve poter partire da un'inferenza del modello, e un numero di versione non si riusa.
+- `docs/release.md` resta la fonte di verità e ora dichiara le due automazioni, precisando che non la sostituiscono: l'hook scatta solo sugli edit fatti da Claude, quindi il controllo allo step 2 va fatto comunque.
+- `.gitignore`: `.claude/` era escluso in blocco come configurazione personale, quindi le due automazioni non sarebbero finite nel repo e il rimando nel documento avrebbe puntato a file assenti. Ora si escludono i figli di `.claude/` con eccezioni mirate per `settings.json`, `hooks/` e `skills/release/`; restano fuori `settings.local.json`, le skill openspec installate e `commands/`. Escludere i figli e non la cartella è necessario: git non entra in una directory esclusa, quindi una regola `!` sotto `.claude/` non avrebbe avuto effetto.
+
 ## 2026-09-11 — docs: procedura di rilascio più a prova di errore
 
 - `docs/release.md` riscritta sui punti che il rilascio della v0.2.4 ha fatto emergere. Il bump era arrivato da una PR e nessuno step intercettava il fatto che `uv.lock` fosse rimasto a 0.2.3: ora lo step 2 dice di rifare `uv lock` **e di verificare con un grep** che la versione sia cambiata, con la nota che il lock pinna la versione di openverto stesso e quindi va rifatto a ogni bump.

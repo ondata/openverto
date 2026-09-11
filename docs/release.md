@@ -2,6 +2,14 @@
 
 Mirrors the `opensdmx` flow: manual, tag-based, published to PyPI with `twine`.
 
+This document is the source of truth. Two automations point back to it, and
+neither replaces it:
+
+- `/release` (`.claude/skills/release/SKILL.md`) walks these steps. It is
+  user-invocable only, because step 8 must never be model-triggered.
+- `.claude/hooks/lock-version-sync.sh` flags a `uv.lock` left behind by a
+  version bump, which is the step-2 failure that shipped in v0.2.4.
+
 ## Subrelease
 
 Use a subrelease for a low-risk patch that does not change the release flow,
@@ -38,6 +46,8 @@ uv lock
 grep -A1 'name = "openverto"' uv.lock      # must print the new X.Y.Z
 #    uv.lock pins openverto's own version, so it goes stale on every bump. A PR
 #    that bumps pyproject.toml without running `uv lock` leaves it behind.
+#    A project hook warns about this after any edit to pyproject.toml, but the
+#    hook only fires when Claude does the edit: keep checking it here.
 
 # 3. Update LOG.md with the changes
 

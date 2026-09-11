@@ -10,11 +10,22 @@ wheels/
 .venv
 
 # AI tool configs (personal)
-.claude/
 .codex/
 .gemini/
 .opencode/
 .agents/
+
+# Same for .claude/, except the project automations that belong to the release
+# process: they are maintenance tooling like docs/release.md and are meant to be
+# shared. Note the contents are excluded rather than the directory itself: git
+# does not descend into an excluded directory, so a `!` rule under `.claude/`
+# would never take effect.
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+.claude/skills/*
+!.claude/skills/
+!.claude/skills/release/
 
 # Internal working notes
 tasks/
