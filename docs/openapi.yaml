@@ -42,6 +42,15 @@ info:
       (es. da `RDN2008 2D geo` a `RDN2008 / TM32`) e vengono rifiutate.
     - **Copertura della griglia: Italia e mari circostanti.** Coordinate fuori
       copertura vengono rifiutate dal motore PROJ sottostante.
+    - **Il corpo delle risposte di `conversione` può non essere JSON valido.**
+      Osservato l'11 settembre 2026: il servizio prepone al JSON una riga di
+      debug del proprio log applicativo, per esempio
+      `QUERY: INSERT INTO vol.log (email, num_vertices) VALUES ('openverto', 1)`,
+      dove il valore riportato è il campo `utente` inviato dal client. Il
+      `Content-Type` resta `application/json` e lo stato HTTP resta `200`, ma un
+      parser rigoroso fallisce. Il ramo `info` non è interessato. Un client
+      robusto deve estrarre il primo oggetto JSON del corpo invece di affidarsi
+      a un parse dell'intera risposta.
   contact:
     name: IGM — Istituto Geografico Militare
     url: https://igmi.esercito.difesa.it/servizi/verto-online/

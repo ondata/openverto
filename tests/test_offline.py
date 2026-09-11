@@ -201,3 +201,54 @@ def test_batch_accepts_valid_target_combination(tmp_path, monkeypatch):
     runner = CliRunner()
     result = runner.invoke(app, ["batch", str(p), "--from", "23033", "--to", "6706"])
     assert result.exit_code == 0
+
+
+# --- base.post: tolerant parsing of a polluted response body ---------------
+
+
+def _post_with_body(monkeypatch, body: str, *, status: int = 200):
+    """Run base.post against a mocked transport returning ``body`` verbatim."""
+    import httpx
+
+    import openverto.base as basemod
+
+    def handler(request):
+        return httpx.Response(status, text=body, headers={"Content-Type": "application/json"})
+
+    real_client = httpx.Client
+
+    def fake_client(**kwargs):
+        return real_client(transport=httpx.MockTransport(handler), **kwargs)
+
+    monkeypatch.setattr(basemod.httpx, "Client", fake_client)
+    return basemod.post({"richiesta": "info"}, retries=0)
+
+
+def test_post_salvages_json_after_debug_prefix(monkeypatch):
+    """The IGM service prefixes the conversion body with a stray SQL log line."""
+    body = (
+        "QUERY: INSERT INTO vol.log (email, num_vertices) VALUES ('openverto', 1)\n"
+        '{\n\t"stato": "successo",\n'
+        '\t"coordinate": [\n\t\t{"e": 13.3122593652, "n": 38.1163458766}\n\t]\n}\n'
+    )
+    resp = _post_with_body(monkeypatch, body)
+    assert resp["stato"] == "successo"
+    assert resp["coordinate"] == [{"e": 13.3122593652, "n": 38.1163458766}]
+
+
+def test_post_salvages_json_with_trailing_junk(monkeypatch):
+    resp = _post_with_body(monkeypatch, '{"stato": "successo", "coordinate": []}\nDONE\n')
+    assert resp == {"stato": "successo", "coordinate": []}
+
+
+def test_post_keeps_diagnostic_on_unparseable_body(monkeypatch):
+    import pytest
+
+    with pytest.raises(ValueError, match="invalid JSON from Verto service"):
+        _post_with_body(monkeypatch, "<html>service unavailable</html>")
+
+
+def test_post_parses_clean_body_unchanged(monkeypatch):
+    """If the service stops polluting the body, the strict path still works."""
+    resp = _post_with_body(monkeypatch, '{"maxCoord": 32000, "srsSupportati": []}')
+    assert resp == {"maxCoord": 32000, "srsSupportati": []}
