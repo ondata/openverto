@@ -1,5 +1,12 @@
 # LOG
 
+## 2026-09-11 — docs: procedura di rilascio più a prova di errore
+
+- `docs/release.md` riscritta sui punti che il rilascio della v0.2.4 ha fatto emergere. Il bump era arrivato da una PR e nessuno step intercettava il fatto che `uv.lock` fosse rimasto a 0.2.3: ora lo step 2 dice di rifare `uv lock` **e di verificare con un grep** che la versione sia cambiata, con la nota che il lock pinna la versione di openverto stesso e quindi va rifatto a ogni bump.
+- Aggiunti: variante "il bump è già in `main`" allo step 1, `twine check` prima dell'upload, `--force` sull'install locale, step 10 di verifica di cosa ricevono gli utenti (versione su PyPI e `--version`), e un avviso che l'upload su PyPI è irreversibile perché un numero di versione non si può riusare.
+- Nuova sezione "Post-release smoke test": una conversione live con `OPENVERTO_CACHE_DIR=$(mktemp -d)`, perché `--version` prova solo l'installazione e un hit in cache può mascherare del tutto un percorso di rete rotto - è esattamente come il guasto della v0.2.4 è sembrato intermittente.
+- Test live promossi da opzionali a obbligatori in checklist. Tutti i comandi nuovi provati verbatim.
+
 ## 2026-09-11 — v0.2.4 — tollera la risposta malformata del servizio IGM
 
 - Il servizio IGM ha iniziato a prependere al JSON della `conversione` una riga di debug del proprio log applicativo (`QUERY: INSERT INTO vol.log (email, num_vertices) VALUES ('openverto', 1)`, dove il valore è il campo `utente` inviato dal client). `Content-Type: application/json` e HTTP 200 restano corretti, ma `resp.json()` falliva: **ogni conversione non già in cache** usciva con `invalid JSON from Verto service`. Il ramo `info` (`openverto systems`) non è interessato, per questo il guasto sembrava intermittente.
