@@ -23,6 +23,7 @@ from .transform import (
     targets as lib_targets,
 )
 from .detect import detect as lib_detect
+from .refdata import RETIRED_EPSG, retired_message
 from .geo import (
     E_ALIASES,
     N_ALIASES,
@@ -132,9 +133,12 @@ def _die(msg: str, code: int) -> NoReturn:
 def _parse_epsg(s: str) -> int:
     s = s.strip().upper().removeprefix("EPSG:").strip()
     try:
-        return int(s)
+        epsg = int(s)
     except ValueError:
         _die(f"invalid EPSG code {s!r}: want an integer like 3003", EXIT_USAGE)
+    if epsg in RETIRED_EPSG:
+        _die(retired_message(epsg), EXIT_NOT_FOUND)
+    return epsg
 
 
 def _read_coord_args(args: list[str]) -> list[tuple[float, float]]:
@@ -338,7 +342,7 @@ def targets(epsg: str = typer.Argument(..., help="Source EPSG")):
 def roundtrip(
     coords: Optional[list[str]] = typer.Argument(None, help="Coordinate pairs: e n [e n ...]"),
     from_epsg: str = typer.Option(..., "--from", help="Source EPSG (e.g. 3003)"),
-    to_epsg: str = typer.Option(..., "--to", help="Round-trip-through EPSG, different datum (e.g. 6707)"),
+    to_epsg: str = typer.Option(..., "--to", help="Round-trip-through EPSG, different datum (e.g. 7791)"),
 ):
     """Convert A->B->A and report the residual error of the transform.
 
@@ -350,7 +354,7 @@ def roundtrip(
     Examples:
 
       openverto roundtrip --from 23033 --to 6706 290000 4640000
-      openverto -o json roundtrip --from 3003 --to 6707 1500000 4640000
+      openverto -o json roundtrip --from 3003 --to 7791 1500000 4640000
     """
     in_e = _parse_epsg(from_epsg)
     out_e = _parse_epsg(to_epsg)
@@ -377,7 +381,7 @@ def roundtrip(
 def batch(
     file: str = typer.Argument(..., help="Input CSV file ('-' for stdin)"),
     from_epsg: str = typer.Option(..., "--from", help="Source EPSG (e.g. 3003)"),
-    to_epsg: str = typer.Option(..., "--to", help="Target EPSG, different datum (e.g. 6707)"),
+    to_epsg: str = typer.Option(..., "--to", help="Target EPSG, different datum (e.g. 7791)"),
     e_col: str = typer.Option("", "--e-col", help="East/longitude column (auto-detected if empty)"),
     n_col: str = typer.Option("", "--n-col", help="North/latitude column (auto-detected if empty)"),
     decimal: str = typer.Option(".", "--decimal", help="Decimal separator of the input CSV: '.' or ',' (Italian-style 12,4924)"),
@@ -396,7 +400,7 @@ def batch(
 
     Examples:
 
-      openverto batch catasto.csv --from 3003 --to 6707 --e-col est --n-col nord --out out.csv
+      openverto batch catasto.csv --from 3003 --to 7791 --e-col est --n-col nord --out out.csv
       openverto batch points.csv --from 3003 --to 6706 --format geojson --out out.geojson
       openverto batch comuni.csv --from 4265 --to 6706 --decimal , --e-col lon --n-col lat
       cat comuni.csv | openverto batch - --from 4265 --to 6706 --decimal ,

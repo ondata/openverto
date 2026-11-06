@@ -1,5 +1,13 @@
 # LOG
 
+## 2026-11-06 - codici RDN2008 allineati al servizio
+
+- `refdata.py`: 6707, 6708, 6709, 6876 sostituiti da 7791, 7792, 7793, 7795. Tabella uguale all'elenco `info` del servizio. `batch` e `targets` tornano a coprire le zone UTM di RDN2008.
+- I codici dismessi danno un errore che indica il sostituto, prima di leggere la cache: altrimenti `convert` rispondeva dai vecchi risultati e sembrava funzionare.
+- `systems`: la cache non scadeva mai e ripresentava l'elenco vecchio. Ora si riaggiorna se contiene codici sconosciuti; se il servizio non risponde resta valida.
+- `convert_skipping` non biseziona più sugli errori di `inEpsg` e `outEpsg`.
+- Verifica: 12 conversioni in cache con scarto 0 mm verso i codici nuovi, test live 9 su 9 con GDAL.
+
 ## 2026-11-06 - credenziali IGM
 
 - `--utente` e `--chiave`, variabili `OPENVERTO_UTENTE` e `OPENVERTO_CHIAVE`, `set_credentials()`. Senza credenziali resta il segnaposto, che il servizio accetta ancora.

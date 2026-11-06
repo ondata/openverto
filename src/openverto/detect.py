@@ -68,7 +68,7 @@ def classify_coord(e: float, n: float) -> dict:
     )
 
     if 100_000 <= ae <= 950_000 and italy_northing:
-        res["candidate_epsg"] = [23032, 23033, 23034, 3064, 3065, 9716, 6707, 6708, 6709]
+        res["candidate_epsg"] = [23032, 23033, 23034, 3064, 3065, 9716, 7791, 7792, 7793]
         res["reason"] = (
             "easting ~0.1–0.95M with northing ~3.9–5.3M: UTM/TM zone (32/33/34) "
             "on ED50, IGM95 or RDN2008"
@@ -92,7 +92,7 @@ def classify_coord(e: float, n: float) -> dict:
             "(Monte Mario / Italy zone 2)"
         )
     elif 2_700_000 <= ae < 3_200_000 and italy_northing:
-        res["candidate_epsg"] = [6876, 3004]
+        res["candidate_epsg"] = [7795, 3004]
         res["reason"] = (
             "easting ~2.7–3.2M: RDN2008 Zone 12 (also overlaps Gauss-Boaga fuso Est)"
         )

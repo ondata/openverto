@@ -49,8 +49,8 @@ openverto convert --from 4265 --to 6706 12.4924 41.8902
 # asse, fuso e false easting prima di una conversione proiettata
 openverto inspect 3003
 
-# converti un CSV di punti Gauss-Boaga (colonne est/nord) in RDN2008/TM32
-openverto batch catasto.csv --from 3003 --to 6707 --e-col est --n-col nord --out out.csv
+# converti un CSV di punti Gauss-Boaga (colonne est/nord) in RDN2008/UTM32
+openverto batch catasto.csv --from 3003 --to 7791 --e-col est --n-col nord --out out.csv
 
 # CSV all'italiana (delimitatore ; e virgola decimale), da stdin verso stdout
 cat comuni.csv | openverto batch - --from 4265 --to 6706 --decimal , --e-col lon --n-col lat
@@ -132,10 +132,10 @@ header, records = ov.read_csv_file("comuni.csv", decimal=",")
 e_idx = ov.resolve_column(header, "lon", ov.geo.E_ALIASES)
 
 # salta le coordinate fuori griglia isolandole per bisezione
-results, skipped = ov.convert_skipping(coords, 3003, 6707)
+results, skipped = ov.convert_skipping(coords, 3003, 7791)
 
 # errore residuo di una catena di datum
-ov.roundtrip([(1500000, 4640000)], 3003, 6707)
+ov.roundtrip([(1500000, 4640000)], 3003, 7791)
 ```
 
 ## Credenziali

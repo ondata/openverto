@@ -4,6 +4,8 @@ from."""
 
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 import openverto as ov
@@ -389,3 +391,95 @@ def test_outside_grid_error_is_not_a_credentials_rejection():
     exc = ov.VertoError("coordinate fuori griglia", "Proj")
     assert exc.outside_grid
     assert not exc.credentials_rejected
+
+
+# --- retired EPSG codes -----------------------------------------------------
+
+
+def test_reftable_lists_replacements_not_retired_codes():
+    from openverto.refdata import RETIRED_EPSG
+
+    assert not set(RETIRED_EPSG) & set(REF_TABLE)
+    assert set(RETIRED_EPSG.values()) <= set(REF_TABLE)
+
+
+@pytest.mark.parametrize("old,new", [(6707, 7791), (6708, 7792), (6709, 7793), (6876, 7795)])
+@pytest.mark.parametrize("command", ["convert", "roundtrip", "targets", "inspect", "batch", "geojson"])
+def test_cli_retired_code_names_its_replacement(igm, tmp_path, command, old, new):
+    from typer.testing import CliRunner
+
+    from openverto.cli import app
+
+    seen, _ = igm
+    f = tmp_path / "in.csv"
+    f.write_text("e,n\n1,2\n")
+    gj = tmp_path / "in.geojson"
+    gj.write_text('{"type":"Point","coordinates":[1,2]}')
+    args = {
+        "convert": ["convert", "--from", "3003", "--to", str(old), "--no-cache", "1", "2"],
+        "roundtrip": ["roundtrip", "--from", "3003", "--to", str(old), "1", "2"],
+        "targets": ["targets", str(old)],
+        "inspect": ["inspect", str(old)],
+        "batch": ["batch", str(f), "--from", "3003", "--to", str(old), "--e-col", "e", "--n-col", "n"],
+        "geojson": ["geojson", str(gj), "--from", "3003", "--to", str(old)],
+    }[command]
+    res = CliRunner().invoke(app, args)
+    assert res.exit_code == 3, res.output
+    assert str(new) in res.output
+    assert not seen
+
+
+def test_cli_batch_accepts_new_code(igm, tmp_path):
+    from typer.testing import CliRunner
+
+    from openverto.cli import app
+
+    seen, _ = igm
+    f = tmp_path / "in.csv"
+    f.write_text("e,n\n1,2\n")
+    res = CliRunner().invoke(app, ["batch", str(f), "--from", "23033", "--to", "7791", "--e-col", "e", "--n-col", "n"])
+    assert res.exit_code == 0, res.output
+    assert seen[-1]["outEpsg"] == 7791
+
+
+def test_library_retired_code_ignores_old_cached_results(igm, tmp_path):
+    seen, _ = igm
+    (tmp_path / "conversions.json").write_text('{"3003:6707:1.0:2.0": [9.0, 9.0]}')
+    with pytest.raises(ov.VertoError, match="7791"):
+        ov.convert([(1, 2)], 3003, 6707)
+    with pytest.raises(ov.VertoError, match="7791"):
+        ov.convert_skipping([(1, 2)], 3003, 6707)
+    assert not seen
+
+
+def test_skip_invalid_does_not_bisect_on_unsupported_epsg(igm):
+    import httpx
+
+    seen, state = igm
+    state["response"] = httpx.Response(200, json={"stato": "errore", "dove": "outEpsg", "messaggio": "sistema di riferimento non supportato"})
+    with pytest.raises(ov.VertoError):
+        ov.convert_skipping([(1, 2), (3, 4), (5, 6), (7, 8)], 4265, 6706)
+    assert len(seen) == 1
+
+
+def test_systems_refreshes_a_list_cached_before_the_service_change(igm, tmp_path, monkeypatch):
+    sysmod = sys.modules["openverto.systems"]
+
+    (tmp_path / "systems.json").write_text('[{"epsg": 6707, "descrizione": "RDN2008 / TM32"}]')
+    fresh = [{"epsg": 7791, "descrizione": "RDN2008 / UTM zone 32N (E-N)"}]
+    monkeypatch.setattr(sysmod, "info", lambda: {"srsSupportati": fresh})
+    assert sysmod.systems() == fresh
+    assert sysmod.systems() == fresh
+
+
+def test_systems_keeps_the_old_list_when_offline(igm, tmp_path, monkeypatch):
+    sysmod = sys.modules["openverto.systems"]
+
+    old = [{"epsg": 6707, "descrizione": "RDN2008 / TM32"}]
+    (tmp_path / "systems.json").write_text('[{"epsg": 6707, "descrizione": "RDN2008 / TM32"}]')
+
+    def down():
+        raise OSError("offline")
+
+    monkeypatch.setattr(sysmod, "info", down)
+    assert sysmod.systems() == old

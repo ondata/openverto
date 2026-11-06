@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from . import cache
 from .base import MAX_COORD, post
+from .refdata import REF_TABLE
 
 __all__ = ["systems", "system_by_epsg", "info", "MAX_COORD"]
 
@@ -22,7 +23,8 @@ def systems(refresh: bool = False) -> list[dict]:
     """
     if not refresh:
         cached = cache.load_systems()
-        if cached:
+        # A code unknown to REF_TABLE means the list predates a service change.
+        if cached and all(s.get("epsg") in REF_TABLE for s in cached):
             return cached
     try:
         resp = info()

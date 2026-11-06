@@ -23,9 +23,9 @@ pytestmark = pytest.mark.live
 # (label, e, n, from_epsg, to_epsg, geographic)
 CASES = [
     ("Roma40 geo -> RDN2008 geo", 12.4924, 41.8902, 4265, 6706, True),
-    ("GB-Ovest -> RDN2008/TM32", 1514000, 5034000, 3003, 6707, False),
+    ("GB-Ovest -> RDN2008/UTM32", 1514000, 5034000, 3003, 7791, False),
     ("ED50 geo -> RDN2008 geo", 12.49, 41.89, 4230, 6706, True),
-    ("ED50/UTM33 -> RDN2008/TM33", 290000, 4640000, 23033, 6708, False),
+    ("ED50/UTM33 -> RDN2008/UTM33", 290000, 4640000, 23033, 7792, False),
     ("IGM95 geo -> RDN2008 geo", 12.49, 41.89, 4670, 6706, True),
 ]
 

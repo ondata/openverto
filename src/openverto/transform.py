@@ -13,7 +13,7 @@ from typing import Iterable, Sequence
 
 from . import cache
 from .base import MAX_COORD, VertoError, get_credentials, get_throttle, post
-from .refdata import REF_TABLE, datum_family, ref_by_epsg
+from .refdata import REF_TABLE, RETIRED_EPSG, datum_family, ref_by_epsg, retired_message
 from .systems import system_by_epsg, systems
 
 Coord = tuple[float, float]
@@ -37,6 +37,13 @@ def _to_pairs(coords: Iterable) -> list[Coord]:
             e, n = c
             out.append((float(e), float(n)))
     return out
+
+
+def _reject_retired(in_epsg: int, out_epsg: int) -> None:
+    """Fail on a retired code, before the cache can answer with old results."""
+    for epsg, field in ((in_epsg, "inEpsg"), (out_epsg, "outEpsg")):
+        if epsg in RETIRED_EPSG:
+            raise VertoError(retired_message(epsg), field)
 
 
 def _convert_chunk(in_epsg: int, out_epsg: int, coords: Sequence[Coord]) -> list[Coord]:
@@ -77,6 +84,7 @@ def convert(
 
     Raises :class:`~openverto.base.VertoError` on a service-level rejection.
     """
+    _reject_retired(from_epsg, to_epsg)
     pairs = _to_pairs(coords)
     if not pairs:
         return []
@@ -124,6 +132,7 @@ def convert_skipping(
     with ``None`` at skipped positions; ``skipped`` is the list of skipped
     indices. Non-service errors (network) propagate.
     """
+    _reject_retired(from_epsg, to_epsg)
     pairs = _to_pairs(coords)
     results: list[Coord | None] = [None] * len(pairs)
     skipped: list[int] = []
@@ -147,9 +156,9 @@ def _convert_range(in_epsg, out_epsg, sub, offset, results, skipped, gate) -> No
     try:
         got = _convert_chunk(in_epsg, out_epsg, sub)
     except VertoError as exc:
-        # A rejected key fails every coordinate: bisecting would send a request
-        # per point and report them all as invalid.
-        if exc.credentials_rejected:
+        # A rejected key or EPSG fails every coordinate: bisecting would send a
+        # request per point and report them all as invalid.
+        if exc.credentials_rejected or exc.dove in ("inEpsg", "outEpsg"):
             raise
         if len(sub) == 1:
             skipped.append(offset)

@@ -41,7 +41,7 @@ info:
     - **Limite di 32000 coordinate per richiesta** (`maxCoord`). Job più grandi
       vanno spezzati in più richieste dal client.
     - **Le conversioni tra sistemi con lo stesso datum non sono supportate**
-      (es. da `RDN2008 2D geo` a `RDN2008 / TM32`) e vengono rifiutate.
+      (es. da `RDN2008 2D geo` a `RDN2008 / UTM zone 32N (E-N)`) e vengono rifiutate.
     - **Copertura della griglia: Italia e mari circostanti.** Coordinate fuori
       copertura vengono rifiutate dal motore PROJ sottostante.
     - **Il corpo delle risposte di `conversione` può non essere JSON valido.**
