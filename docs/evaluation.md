@@ -41,5 +41,5 @@ PROJ only by the expected datum uncertainty. Use openverto when you need the
 **authoritative** Italian transform (cadastre, official open data); a gridless
 tool like ogr2ogr is fine only where 1–3 m of datum error is acceptable.
 
-Regression guard: `tests/test_compare_gdal.py` (run with `pytest -m live`)
+Regression guard: `tests/test_compare_terrio.py` (run with `pytest -m live`)
 asserts the gap stays under 10 m for representative cases.
