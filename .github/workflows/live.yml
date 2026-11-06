@@ -30,11 +30,20 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      # La suite live e' 9 test e una decina di richieste. Il servizio IGM e'
+      # I test di confronto con terrio sono gli unici che coprono i codici proiettati
+      # di RDN2008. In CI, senza terrio, falliscono invece di essere saltati.
+      - name: Install terrio
+        run: uv tool install terrio==0.7.0
+
+      # La suite live e' 12 test e una dozzina di richieste. Il servizio IGM e'
       # gratuito e pubblico: una volta al giorno basta per accorgersene presto
       # senza pesare. Il secondo tentativo serve a non aprire una issue per un
       # disservizio di un minuto.
       - name: Run live tests
+        env:
+          # Vuoti finche' i secret non esistono: openverto usa allora il segnaposto.
+          OPENVERTO_UTENTE: ${{ secrets.OPENVERTO_UTENTE }}
+          OPENVERTO_CHIAVE: ${{ secrets.OPENVERTO_CHIAVE }}
         run: |
           set +e
           uv run pytest -m live
@@ -48,7 +57,7 @@ jobs:
           exit "$rc"
 
       - name: Report the failure
-        if: failure()
+        if: failure() && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

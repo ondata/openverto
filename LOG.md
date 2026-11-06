@@ -1,5 +1,36 @@
 # LOG
 
+## 2026-11-06 - v0.3.0
+
+- Versione per credenziali IGM, codici RDN2008 allineati al servizio e controllo giornaliero con terrio: dettagli nelle voci sotto. Cambiamento non retrocompatibile: 6707, 6708, 6709 e 6876 non sono più accettati.
+
+## 2026-11-06 - controllo giornaliero: confronto con terrio
+
+- Il controllo giornaliero saltava senza dirlo i test di confronto, gli unici con i codici proiettati di RDN2008: per questo il cambio codici non è stato notato. Ora in CI, se manca lo strumento, i test falliscono.
+- Lo strumento è `terrio crs`, al posto di `gdaltransform`: si installa con una riga da PyPI e su 8 casi dà lo stesso risultato di GDAL (scarto 0,000 m). I casi coprono ora anche 7793, 7794, 7795.
+- Nuovo test live: l'elenco dei codici del servizio deve coincidere con `REF_TABLE`.
+- Workflow: secret opzionali `OPENVERTO_UTENTE` e `OPENVERTO_CHIAVE`; la issue automatica si apre solo da `main`.
+
+## 2026-11-06 - codici RDN2008 allineati al servizio
+
+- `refdata.py`: 6707, 6708, 6709, 6876 sostituiti da 7791, 7792, 7793, 7795. Tabella uguale all'elenco `info` del servizio. `batch` e `targets` tornano a coprire le zone UTM di RDN2008.
+- I codici dismessi danno un errore che indica il sostituto, prima di leggere la cache: altrimenti `convert` rispondeva dai vecchi risultati e sembrava funzionare.
+- `systems`: la cache non scadeva mai e ripresentava l'elenco vecchio. Ora si riaggiorna se contiene codici sconosciuti; se il servizio non risponde resta valida.
+- `convert_skipping` non biseziona più sugli errori di `inEpsg` e `outEpsg`.
+- Verifica: 12 conversioni in cache con scarto 0 mm verso i codici nuovi, test live 9 su 9 con GDAL.
+
+## 2026-11-06 - credenziali IGM
+
+- `--utente` e `--chiave`, variabili `OPENVERTO_UTENTE` e `OPENVERTO_CHIAVE`, `set_credentials()`. Senza credenziali resta il segnaposto, che il servizio accetta ancora.
+- Credenziali rifiutate: messaggio che spiega dove trovarle, anche su HTTP 401 e 403, senza nuovi tentativi. Il formato reale del rifiuto non è noto finché IGM non attiva il controllo.
+- `convert_skipping` bisecava su ogni errore del servizio: con la chiave rifiutata avrebbe fatto una richiesta per punto e segnalato tutti i punti come non validi. Ora si ferma subito.
+- Guida con due schermate in `docs/cli.md`, dati personali coperti.
+
+## 2026-11-06 - documentazione IGM aggiornata in `ref/`
+
+- Archiviati manuale del 2026-10-01, nota EPSG, file `.prj` e pagina del servizio, nel formato originale e in Markdown. Il manuale precedente è in `ref/archivio/`; indice e differenze in `ref/README.md`. `ref/` è escluso da git.
+- La pagina IGM dichiara obbligatorie le credenziali dal 1 novembre 2026; il 6 novembre il servizio accetta ancora valori vuoti o inventati. Il servizio non elenca più 6707, 6708, 6709, 6876, sostituiti da 7791, 7792, 7793, 7795. Interventi pianificati in `tasks/todo.md`.
+
 ## 2026-09-11 — CI: controllo schedulato contro il servizio IGM
 
 - `.github/workflows/live.yml`: la suite live (`pytest -m live`) gira ogni giorno alle 06:17 UTC e apre una issue quando fallisce. Colma il buco che ha fatto passare la v0.2.4: i test live sono esclusi dalla CI normale (`addopts = "-m 'not live'"`) e la CI parte solo su push e PR, quindi un cambiamento lato IGM non coincide con nessun evento del repo e non poteva farsi notare.

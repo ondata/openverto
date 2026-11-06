@@ -55,12 +55,26 @@ REF_TABLE: dict[int, dict] = {
 
     # RDN2008 family (ETRF2000 realization — the current Italian official datum)
     6706: _ref(6706, "RDN2008 2D geo", FAMILY_RDN2008, "geographic", "degree", "", "", "RDN2008 (ETRF2000) geographic; the current official Italian datum."),
-    6707: _ref(6707, "RDN2008 / TM32", FAMILY_RDN2008, "projected", "metre", "Transverse Mercator zone 32 (CM 9°E)", "500 000 m", "RDN2008 UTM-style zone 32; easting ~500 000 at the central meridian."),
-    6708: _ref(6708, "RDN2008 / TM33", FAMILY_RDN2008, "projected", "metre", "Transverse Mercator zone 33 (CM 15°E)", "500 000 m", "RDN2008 UTM-style zone 33; easting ~500 000 at the central meridian."),
-    6709: _ref(6709, "RDN2008 / TM34", FAMILY_RDN2008, "projected", "metre", "Transverse Mercator zone 34 (CM 21°E)", "500 000 m", "RDN2008 UTM-style zone 34; eastern Italy."),
+    7791: _ref(7791, "RDN2008 / UTM zone 32N (E-N)", FAMILY_RDN2008, "projected", "metre", "UTM zone 32N (CM 9°E)", "500 000 m", "RDN2008 UTM zone 32; easting ~500 000 at the central meridian."),
+    7792: _ref(7792, "RDN2008 / UTM zone 33N (E-N)", FAMILY_RDN2008, "projected", "metre", "UTM zone 33N (CM 15°E)", "500 000 m", "RDN2008 UTM zone 33; easting ~500 000 at the central meridian."),
+    7793: _ref(7793, "RDN2008 / UTM zone 34N (E-N)", FAMILY_RDN2008, "projected", "metre", "UTM zone 34N (CM 21°E)", "500 000 m", "RDN2008 UTM zone 34; eastern Italy."),
     7794: _ref(7794, "RDN2008 / Italy Zone (E-N)", FAMILY_RDN2008, "projected", "metre", "single national zone", "~7 000 000 m (zone-prefixed)", "RDN2008 single national zone; very large zone-prefixed easting (~6.7–7.1M)."),
-    6876: _ref(6876, "RDN2008 / Zone 12", FAMILY_RDN2008, "projected", "metre", "zone 12", "~3 000 000 m (zone-prefixed)", "RDN2008 zone-12 system; zone-prefixed easting (~2.7–3.1M)."),
+    7795: _ref(7795, "RDN2008 / Zone 12 (E-N)", FAMILY_RDN2008, "projected", "metre", "zone 12", "~3 000 000 m (zone-prefixed)", "RDN2008 zone-12 system; zone-prefixed easting (~2.7–3.1M)."),
 }
+
+
+#: Codes the service no longer accepts, with their replacement. IGM's EPSG note
+#: (``nuova_nota_EPSG.pdf``) describes each pair as the same system with the axis
+#: order inverted (N-E, then E-N).
+RETIRED_EPSG = {6707: 7791, 6708: 7792, 6709: 7793, 6876: 7795}
+
+
+def retired_message(epsg: int) -> str:
+    """Explain which code replaces a retired EPSG."""
+    return (
+        f"EPSG {epsg} is no longer accepted by the IGM service: use "
+        f"{RETIRED_EPSG[epsg]} (same system, east-north axis order)"
+    )
 
 
 def ref_by_epsg(epsg: int) -> dict | None:

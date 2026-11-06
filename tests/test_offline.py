@@ -4,6 +4,10 @@ from."""
 
 from __future__ import annotations
 
+import sys
+
+import pytest
+
 import openverto as ov
 from openverto.detect import classify_coord
 from openverto.geo import reproject_geojson
@@ -252,3 +256,230 @@ def test_post_parses_clean_body_unchanged(monkeypatch):
     """If the service stops polluting the body, the strict path still works."""
     resp = _post_with_body(monkeypatch, '{"maxCoord": 32000, "srsSupportati": []}')
     assert resp == {"maxCoord": 32000, "srsSupportati": []}
+
+
+# --- credentials ------------------------------------------------------------
+
+
+@pytest.fixture
+def igm(monkeypatch, tmp_path):
+    """Mock the IGM endpoint: returns the request bodies it received."""
+    import json
+
+    import httpx
+
+    import openverto.base as basemod
+
+    seen = []
+    state = {"response": None}
+
+    def handler(request):
+        body = json.loads(request.content)
+        seen.append(body)
+        if state["response"] is not None:
+            return state["response"]
+        coords = [{"e": 1.0, "n": 2.0} for _ in body["coordinate"]]
+        return httpx.Response(200, json={"stato": "successo", "coordinate": coords})
+
+    real_client = httpx.Client
+    monkeypatch.setattr(
+        basemod.httpx,
+        "Client",
+        lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw),
+    )
+    monkeypatch.setenv("OPENVERTO_CACHE_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENVERTO_UTENTE", raising=False)
+    monkeypatch.delenv("OPENVERTO_CHIAVE", raising=False)
+    basemod.set_credentials()
+    yield seen, state
+    basemod.set_credentials()
+
+
+def _sent(seen):
+    return seen[-1]["utente"], seen[-1]["chiave"]
+
+
+def test_credentials_default_placeholder(igm):
+    seen, _ = igm
+    ov.convert([(1, 2)], 4265, 6706, use_cache=False)
+    assert _sent(seen) == ("openverto", "openverto")
+
+
+def test_credentials_from_env(igm, monkeypatch):
+    seen, _ = igm
+    monkeypatch.setenv("OPENVERTO_UTENTE", "env@esempio.it")
+    monkeypatch.setenv("OPENVERTO_CHIAVE", "ENVKEY")
+    ov.convert([(1, 2)], 4265, 6706, use_cache=False)
+    assert _sent(seen) == ("env@esempio.it", "ENVKEY")
+
+
+def test_credentials_set_overrides_env(igm, monkeypatch):
+    seen, _ = igm
+    monkeypatch.setenv("OPENVERTO_UTENTE", "env@esempio.it")
+    monkeypatch.setenv("OPENVERTO_CHIAVE", "ENVKEY")
+    ov.set_credentials("lib@esempio.it", "LIBKEY")
+    ov.convert([(1, 2)], 4265, 6706, use_cache=False)
+    assert _sent(seen) == ("lib@esempio.it", "LIBKEY")
+
+
+def test_cli_credential_options_override_env(igm, monkeypatch):
+    from typer.testing import CliRunner
+
+    from openverto.cli import app
+
+    seen, _ = igm
+    monkeypatch.setenv("OPENVERTO_UTENTE", "env@esempio.it")
+    monkeypatch.setenv("OPENVERTO_CHIAVE", "ENVKEY")
+    args = ["--utente", "cli@esempio.it", "--chiave", "CLIKEY", "convert", "--from", "4265", "--to", "6706", "--no-cache", "1", "2"]
+    res = CliRunner().invoke(app, args)
+    assert res.exit_code == 0, res.output
+    assert _sent(seen) == ("cli@esempio.it", "CLIKEY")
+    assert "CLIKEY" not in res.output
+
+
+def test_key_stays_out_of_cache_files(igm, monkeypatch, tmp_path):
+    monkeypatch.setenv("OPENVERTO_CHIAVE", "SECRETKEY")
+    ov.convert([(1, 2)], 4265, 6706, use_cache=True)
+    files = [p for p in tmp_path.rglob("*") if p.is_file()]
+    assert files
+    assert all(b"SECRETKEY" not in p.read_bytes() for p in files)
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        {"stato": "errore", "dove": "chiave", "messaggio": "Non valida"},
+        {"stato": "errore", "dove": "login", "messaggio": "Abbonamento scaduto"},
+    ],
+)
+def test_cli_rejected_credentials_explain_what_to_do(igm, response):
+    import httpx
+    from typer.testing import CliRunner
+
+    from openverto.cli import app
+
+    _, state = igm
+    state["response"] = httpx.Response(200, json=response)
+    res = CliRunner().invoke(app, ["convert", "--from", "4265", "--to", "6706", "--no-cache", "1", "2"])
+    assert res.exit_code == 2
+    assert "Abbonamenti ai servizi" in res.output.replace("\n", " ")
+
+
+@pytest.mark.parametrize("status", [401, 403])
+def test_http_auth_error_is_a_credentials_rejection_without_retry(igm, status):
+    import httpx
+
+    seen, state = igm
+    state["response"] = httpx.Response(status, text="denied")
+    with pytest.raises(ov.VertoError) as info:
+        ov.convert([(1, 2)], 4265, 6706, use_cache=False)
+    assert info.value.credentials_rejected
+    assert len(seen) == 1
+
+
+def test_skip_invalid_does_not_bisect_on_rejected_credentials(igm):
+    import httpx
+
+    seen, state = igm
+    state["response"] = httpx.Response(200, json={"stato": "errore", "dove": "chiave", "messaggio": "Non valida"})
+    with pytest.raises(ov.VertoError):
+        ov.convert_skipping([(1, 2), (3, 4), (5, 6), (7, 8)], 4265, 6706)
+    assert len(seen) == 1
+
+
+def test_outside_grid_error_is_not_a_credentials_rejection():
+    exc = ov.VertoError("coordinate fuori griglia", "Proj")
+    assert exc.outside_grid
+    assert not exc.credentials_rejected
+
+
+# --- retired EPSG codes -----------------------------------------------------
+
+
+def test_reftable_lists_replacements_not_retired_codes():
+    from openverto.refdata import RETIRED_EPSG
+
+    assert not set(RETIRED_EPSG) & set(REF_TABLE)
+    assert set(RETIRED_EPSG.values()) <= set(REF_TABLE)
+
+
+@pytest.mark.parametrize("old,new", [(6707, 7791), (6708, 7792), (6709, 7793), (6876, 7795)])
+@pytest.mark.parametrize("command", ["convert", "roundtrip", "targets", "inspect", "batch", "geojson"])
+def test_cli_retired_code_names_its_replacement(igm, tmp_path, command, old, new):
+    from typer.testing import CliRunner
+
+    from openverto.cli import app
+
+    seen, _ = igm
+    f = tmp_path / "in.csv"
+    f.write_text("e,n\n1,2\n")
+    gj = tmp_path / "in.geojson"
+    gj.write_text('{"type":"Point","coordinates":[1,2]}')
+    args = {
+        "convert": ["convert", "--from", "3003", "--to", str(old), "--no-cache", "1", "2"],
+        "roundtrip": ["roundtrip", "--from", "3003", "--to", str(old), "1", "2"],
+        "targets": ["targets", str(old)],
+        "inspect": ["inspect", str(old)],
+        "batch": ["batch", str(f), "--from", "3003", "--to", str(old), "--e-col", "e", "--n-col", "n"],
+        "geojson": ["geojson", str(gj), "--from", "3003", "--to", str(old)],
+    }[command]
+    res = CliRunner().invoke(app, args)
+    assert res.exit_code == 3, res.output
+    assert str(new) in res.output
+    assert not seen
+
+
+def test_cli_batch_accepts_new_code(igm, tmp_path):
+    from typer.testing import CliRunner
+
+    from openverto.cli import app
+
+    seen, _ = igm
+    f = tmp_path / "in.csv"
+    f.write_text("e,n\n1,2\n")
+    res = CliRunner().invoke(app, ["batch", str(f), "--from", "23033", "--to", "7791", "--e-col", "e", "--n-col", "n"])
+    assert res.exit_code == 0, res.output
+    assert seen[-1]["outEpsg"] == 7791
+
+
+def test_library_retired_code_ignores_old_cached_results(igm, tmp_path):
+    seen, _ = igm
+    (tmp_path / "conversions.json").write_text('{"3003:6707:1.0:2.0": [9.0, 9.0]}')
+    with pytest.raises(ov.VertoError, match="7791"):
+        ov.convert([(1, 2)], 3003, 6707)
+    with pytest.raises(ov.VertoError, match="7791"):
+        ov.convert_skipping([(1, 2)], 3003, 6707)
+    assert not seen
+
+
+def test_skip_invalid_does_not_bisect_on_unsupported_epsg(igm):
+    import httpx
+
+    seen, state = igm
+    state["response"] = httpx.Response(200, json={"stato": "errore", "dove": "outEpsg", "messaggio": "sistema di riferimento non supportato"})
+    with pytest.raises(ov.VertoError):
+        ov.convert_skipping([(1, 2), (3, 4), (5, 6), (7, 8)], 4265, 6706)
+    assert len(seen) == 1
+
+
+def test_systems_refreshes_a_list_cached_before_the_service_change(igm, tmp_path, monkeypatch):
+    sysmod = sys.modules["openverto.systems"]
+
+    (tmp_path / "systems.json").write_text('[{"epsg": 6707, "descrizione": "RDN2008 / TM32"}]')
+    fresh = [{"epsg": 7791, "descrizione": "RDN2008 / UTM zone 32N (E-N)"}]
+    monkeypatch.setattr(sysmod, "info", lambda: {"srsSupportati": fresh})
+    assert sysmod.systems() == fresh
+    assert sysmod.systems() == fresh
+
+
+def test_systems_keeps_the_old_list_when_offline(igm, tmp_path, monkeypatch):
+    sysmod = sys.modules["openverto.systems"]
+
+    old = [{"epsg": 6707, "descrizione": "RDN2008 / TM32"}]
+    (tmp_path / "systems.json").write_text('[{"epsg": 6707, "descrizione": "RDN2008 / TM32"}]')
+
+    def down():
+        raise OSError("offline")
+
+    monkeypatch.setattr(sysmod, "info", down)
+    assert sysmod.systems() == old

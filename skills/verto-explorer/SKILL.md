@@ -42,7 +42,7 @@ Use it whenever you need to parse results instead of reading a Rich table:
 ```bash
 openverto -o json systems
 openverto -o jsonl convert --from 4265 --to 6706 12.4924 41.8902
-openverto -o csv batch points.csv --from 3003 --to 6707
+openverto -o csv batch points.csv --from 3003 --to 7791
 ```
 
 In structured modes stdout is pure data and errors go to stderr. Exit codes:
@@ -58,7 +58,9 @@ In structured modes stdout is pure data and errors go to stderr. Exit codes:
   no swap when reprojecting GeoJSON.
 - **Geographic values are always decimal degrees** (gradi sessadecimali), never
   degrees-minutes-seconds. Convert DMS to decimal first.
-- **Same-datum conversions are rejected** (e.g. `6706` → `6707`, both RDN2008).
+- **Credentials:** IGM issues free ones (site login, Area Riservata, "Abbonamenti ai servizi"; they expire every 3 months). Read them from `OPENVERTO_UTENTE` and `OPENVERTO_CHIAVE`; never print the key or pass it as an argument.
+- **Retired codes:** the service no longer accepts `6707`, `6708`, `6709`, `6876`; use `7791`, `7792`, `7793`, `7795` (same systems, east-north axes).
+- **Same-datum conversions are rejected** (e.g. `6706` → `7791`, both RDN2008).
   Always cross a datum family boundary; check with `targets`.
 - **`detect` recovers the projection/zone, never the datum**: magnitude alone
   cannot tell Roma40 from ED50/IGM95/RDN2008. Take the datum from the dataset's
@@ -90,14 +92,14 @@ Key facts to apply:
 - `e` is always **est** (easting OR longitude), `n` is **nord** (northing OR
   latitude). Geographic coordinates are ALWAYS decimal degrees.
 - Look-alikes to disambiguate: `3003` vs `3004` (Gauss-Boaga West/East),
-  `23032` vs `23033` (ED50 UTM 32/33), `6707`/`6708` (RDN2008 TM32/TM33).
+  `23032` vs `23033` (ED50 UTM 32/33), `7791`/`7792` (RDN2008 UTM 32N/33N).
 - If `detect` says the point is outside Italy's bounds, the conversion will be
   rejected — re-check the EPSG and whether `e`/`n` are swapped.
 
 ## Phase 2 — Pick a valid target
 
 The service **rejects conversions between systems of the same datum** (e.g.
-RDN2008 2D geo → RDN2008/TM32). List only valid destinations:
+RDN2008 2D geo → RDN2008/UTM32). List only valid destinations:
 
 ```bash
 openverto -o json targets 3003   # excludes the Roma40/Monte Mario family
@@ -105,7 +107,7 @@ openverto systems                # full list of the 20 supported systems
 ```
 
 For Italian open data today, the official target datum is **RDN2008 (ETRF2000)**:
-geographic `6706`, or projected `6707`/`6708`/`6709` (TM32/33/34).
+geographic `6706`, or projected `7791`/`7792`/`7793` (UTM 32N/33N/34N).
 
 ## Phase 3 — Convert
 
@@ -119,7 +121,7 @@ printf '12.49,41.89\n13.0,42.0\n' | openverto -o jsonl convert --from 4265 --to 
 # a whole CSV → CSV (original columns + e_out/n_out) or GeoJSON.
 # catasto.csv has columns id,est,nord (Gauss-Boaga Ovest = 3003);
 # points.csv has columns e,n (also Gauss-Boaga Ovest = 3003) — auto-detected.
-openverto batch catasto.csv --from 3003 --to 6707 --e-col est --n-col nord --out out.csv
+openverto batch catasto.csv --from 3003 --to 7791 --e-col est --n-col nord --out out.csv
 openverto batch points.csv  --from 3003 --to 6706 --format geojson --out out.geojson
 
 # Italian-style CSV (';' delimiter, comma decimal), piped from stdin to stdout
@@ -165,7 +167,7 @@ Italy is valid; a point in another country or open ocean is rejected with
 - Before publishing, certify the datum chain is lossless within tolerance:
 
   ```bash
-  openverto -o json roundtrip --from 3003 --to 6707 1500000 4640000
+  openverto -o json roundtrip --from 3003 --to 7791 1500000 4640000
   # reports residual_m per point and max/mean residual in metres (A→B→A)
   ```
 
@@ -187,6 +189,6 @@ Italy is valid; a point in another country or open ocean is rejected with
 - **ETRS89 / IGM95**: `4670` geo, `3064`/`3065`/`9716` UTM 32/33/34N,
   `3035` LAEA, `3034` LCC.
 - **RDN2008 (ETRF2000)** — current official Italian datum: `6706` geo,
-  `6707`/`6708`/`6709` TM32/33/34, `7794` Italy Zone (E-N), `6876` Zone 12.
+  `7791`/`7792`/`7793` UTM 32N/33N/34N, `7794` Italy Zone (E-N), `7795` Zone 12.
 
 Conversions are only allowed **across** these families, never within one.

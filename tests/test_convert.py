@@ -104,6 +104,6 @@ def test_roundtrip_residual_zero(monkeypatch):
         }
 
     monkeypatch.setattr(convmod, "post", invertible)
-    rep = convmod.roundtrip([(1500000, 4640000)], 3003, 6707, use_cache=False)
+    rep = convmod.roundtrip([(1500000, 4640000)], 3003, 7791, use_cache=False)
     assert rep["max_residual_m"] == 0.0
     assert rep["source_unit"] == "metre"

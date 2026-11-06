@@ -4,6 +4,10 @@ I test live non girano nella CI normale, perché `addopts = "-m 'not live'"` li 
 
 Cosa guardare, nell'ordine.
 
+Se l'errore parla di credenziali, IGM ha attivato il controllo annunciato per il 1° novembre 2026. Vanno impostati i secret `OPENVERTO_UTENTE` e `OPENVERTO_CHIAVE` del repo, e rinnovati ogni 3 mesi. Va anche confrontata la risposta reale con `VertoError.credentials_rejected` in `src/openverto/base.py`, scritta prima di poter vedere un rifiuto vero.
+
+Se `test_live_systems_match_the_reference_table` fallisce, l'elenco dei codici del servizio è cambiato: si aggiorna `REF_TABLE` in `src/openverto/refdata.py`, e i codici tolti vanno in `RETIRED_EPSG`.
+
 Il corpo grezzo di una risposta di conversione, che è dove si è rotto l'ultima volta:
 
 ```

@@ -33,13 +33,15 @@ info:
       codici di stato HTTP 4xx/5xx: la risposta è comunque `200 OK` e contiene
       `"stato": "errore"`. Vanno distinti dalla forma di successo leggendo il
       corpo.
-    - **`utente` e `chiave` sono obbligatori ma ignorati.** Non sono credenziali
-      di autenticazione: il servizio li richiede ma non li verifica. Vanno
-      riempiti con qualsiasi valore segnaposto.
+    - **`utente` e `chiave` sono le credenziali IGM.** Sono gratuite e si
+      trovano sul sito IGM, in Area Riservata > "Abbonamenti ai servizi"; scadono
+      ogni 3 mesi. IGM le ha annunciate come necessarie dal 1° novembre 2026. Al
+      6 novembre 2026 il servizio richiede i due campi ma ne accetta qualsiasi
+      valore, anche vuoto; la risposta a credenziali rifiutate non è ancora nota.
     - **Limite di 32000 coordinate per richiesta** (`maxCoord`). Job più grandi
       vanno spezzati in più richieste dal client.
     - **Le conversioni tra sistemi con lo stesso datum non sono supportate**
-      (es. da `RDN2008 2D geo` a `RDN2008 / TM32`) e vengono rifiutate.
+      (es. da `RDN2008 2D geo` a `RDN2008 / UTM zone 32N (E-N)`) e vengono rifiutate.
     - **Copertura della griglia: Italia e mari circostanti.** Coordinate fuori
       copertura vengono rifiutate dal motore PROJ sottostante.
     - **Il corpo delle risposte di `conversione` può non essere JSON valido.**
@@ -62,7 +64,8 @@ servers:
   - url: https://igmi.esercito.difesa.it
     description: Endpoint di produzione IGM Verto Online
 
-# Il servizio non richiede autenticazione: i campi utente/chiave sono segnaposto.
+# Le credenziali viaggiano nel corpo della richiesta (utente/chiave), una forma
+# che i security scheme di OpenAPI non descrivono.
 security: []
 
 paths:
@@ -104,8 +107,8 @@ paths:
                 summary: Conversione Monte Mario (4265) → RDN2008 (6706)
                 value:
                   richiesta: conversione
-                  utente: openverto
-                  chiave: openverto
+                  utente: nome@esempio.it
+                  chiave: la-tua-chiave
                   inEpsg: 4265
                   outEpsg: 6706
                   coordinate:
@@ -187,15 +190,15 @@ components:
         utente:
           type: string
           description: |
-            Obbligatorio ma **ignorato** dal servizio: non è un'autenticazione.
-            Riempire con un valore segnaposto qualsiasi.
-          example: openverto
+            Email dell'account IGM. Obbligatorio. Al 6 novembre 2026 il servizio
+            non ne verifica il valore.
+          example: nome@esempio.it
         chiave:
           type: string
           description: |
-            Obbligatorio ma **ignorato** dal servizio: non è una chiave di
-            autenticazione. Riempire con un valore segnaposto qualsiasi.
-          example: openverto
+            "Chiave di Accesso" dell'account IGM, scade ogni 3 mesi. Obbligatorio.
+            Al 6 novembre 2026 il servizio non ne verifica il valore.
+          example: la-tua-chiave
         inEpsg:
           type: integer
           description: Codice EPSG del sistema di riferimento di **origine**.

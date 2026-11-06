@@ -13,7 +13,7 @@ from rich.table import Table
 
 from . import __version__
 from . import cache as cache_mod
-from .base import VertoError, set_extra_headers, set_throttle, set_timeout
+from .base import CREDENTIALS_HINT, VertoError, set_credentials, set_extra_headers, set_throttle, set_timeout
 from .transform import (
     MAX_COORD,
     convert as lib_convert,
@@ -23,6 +23,7 @@ from .transform import (
     targets as lib_targets,
 )
 from .detect import detect as lib_detect
+from .refdata import RETIRED_EPSG, retired_message
 from .geo import (
     E_ALIASES,
     N_ALIASES,
@@ -57,7 +58,10 @@ app = typer.Typer(
         "service; use 'targets' to list valid destinations.\n\n"
         "Global output: -o/--output table|json|jsonl|csv (jsonl is one compact "
         "object per line, ideal for coordinates).\n\n"
-        "The IGM Verto Online service is free and public: please don't abuse it. "
+        "Credentials: IGM issues them for free to registered users (site login, "
+        "Area Riservata, 'Abbonamenti ai servizi'; they expire every 3 months). Set "
+        "OPENVERTO_UTENTE and OPENVERTO_CHIAVE, or use --utente and --chiave.\n\n"
+        "The IGM Verto Online service is free: please don't abuse it. "
         "Jobs over 32000 coordinates are split into batches, spaced by --throttle "
         "seconds (default 2); a single batch is never delayed. Set 0 to disable."
     ),
@@ -129,9 +133,12 @@ def _die(msg: str, code: int) -> NoReturn:
 def _parse_epsg(s: str) -> int:
     s = s.strip().upper().removeprefix("EPSG:").strip()
     try:
-        return int(s)
+        epsg = int(s)
     except ValueError:
         _die(f"invalid EPSG code {s!r}: want an integer like 3003", EXIT_USAGE)
+    if epsg in RETIRED_EPSG:
+        _die(retired_message(epsg), EXIT_NOT_FOUND)
+    return epsg
 
 
 def _read_coord_args(args: list[str]) -> list[tuple[float, float]]:
@@ -170,6 +177,8 @@ def _split_coord(raw: str) -> list[str]:
 
 
 def _handle_verto_error(exc: VertoError, *, batch: bool = False) -> None:
+    if exc.credentials_rejected:
+        _die(f"{exc}\n→ {CREDENTIALS_HINT}", EXIT_USAGE)
     if exc.outside_grid:
         hint = (
             f"{exc}\n"
@@ -203,6 +212,8 @@ def _main(
     timeout: float = typer.Option(30.0, "--timeout", help="Per-request timeout in seconds"),
     throttle: float = typer.Option(2.0, "--throttle", help="Seconds between batches for jobs over 32000 coords (be kind to the free IGM service; 0 to disable)"),
     header: Optional[list[str]] = typer.Option(None, "--header", "-H", help="Extra HTTP header 'Name: Value' (repeatable)"),
+    utente: Optional[str] = typer.Option(None, "--utente", help="IGM user, the account email (or set OPENVERTO_UTENTE)"),
+    chiave: Optional[str] = typer.Option(None, "--chiave", help="IGM access key (prefer OPENVERTO_CHIAVE, so it stays out of the shell history)"),
     version: bool = typer.Option(False, "--version", "-V", callback=_version_cb, is_eager=True, help="Show version and exit"),
 ) -> None:
     global _output
@@ -211,6 +222,7 @@ def _main(
     _output = output
     set_timeout(timeout)
     set_throttle(throttle)
+    set_credentials(utente, chiave)
     if header:
         parsed = {}
         for h in header:
@@ -330,7 +342,7 @@ def targets(epsg: str = typer.Argument(..., help="Source EPSG")):
 def roundtrip(
     coords: Optional[list[str]] = typer.Argument(None, help="Coordinate pairs: e n [e n ...]"),
     from_epsg: str = typer.Option(..., "--from", help="Source EPSG (e.g. 3003)"),
-    to_epsg: str = typer.Option(..., "--to", help="Round-trip-through EPSG, different datum (e.g. 6707)"),
+    to_epsg: str = typer.Option(..., "--to", help="Round-trip-through EPSG, different datum (e.g. 7791)"),
 ):
     """Convert A->B->A and report the residual error of the transform.
 
@@ -342,7 +354,7 @@ def roundtrip(
     Examples:
 
       openverto roundtrip --from 23033 --to 6706 290000 4640000
-      openverto -o json roundtrip --from 3003 --to 6707 1500000 4640000
+      openverto -o json roundtrip --from 3003 --to 7791 1500000 4640000
     """
     in_e = _parse_epsg(from_epsg)
     out_e = _parse_epsg(to_epsg)
@@ -369,7 +381,7 @@ def roundtrip(
 def batch(
     file: str = typer.Argument(..., help="Input CSV file ('-' for stdin)"),
     from_epsg: str = typer.Option(..., "--from", help="Source EPSG (e.g. 3003)"),
-    to_epsg: str = typer.Option(..., "--to", help="Target EPSG, different datum (e.g. 6707)"),
+    to_epsg: str = typer.Option(..., "--to", help="Target EPSG, different datum (e.g. 7791)"),
     e_col: str = typer.Option("", "--e-col", help="East/longitude column (auto-detected if empty)"),
     n_col: str = typer.Option("", "--n-col", help="North/latitude column (auto-detected if empty)"),
     decimal: str = typer.Option(".", "--decimal", help="Decimal separator of the input CSV: '.' or ',' (Italian-style 12,4924)"),
@@ -388,7 +400,7 @@ def batch(
 
     Examples:
 
-      openverto batch catasto.csv --from 3003 --to 6707 --e-col est --n-col nord --out out.csv
+      openverto batch catasto.csv --from 3003 --to 7791 --e-col est --n-col nord --out out.csv
       openverto batch points.csv --from 3003 --to 6706 --format geojson --out out.geojson
       openverto batch comuni.csv --from 4265 --to 6706 --decimal , --e-col lon --n-col lat
       cat comuni.csv | openverto batch - --from 4265 --to 6706 --decimal ,
