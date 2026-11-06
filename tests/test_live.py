@@ -14,7 +14,8 @@ pytestmark = pytest.mark.live
 
 
 def test_live_systems_match_the_reference_table():
-    rows = ov.systems(refresh=True)
+    # info(), not systems(): a failed request must not fall back to the cache.
+    rows = ov.info()["srsSupportati"]
     assert {r["epsg"] for r in rows} == set(REF_TABLE)
 
 
