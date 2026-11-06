@@ -41,5 +41,7 @@ PROJ only by the expected datum uncertainty. Use openverto when you need the
 **authoritative** Italian transform (cadastre, official open data); a gridless
 tool like ogr2ogr is fine only where 1–3 m of datum error is acceptable.
 
+Note (2026-11-06): the TM32 and TM33 rows above used EPSG 6707 and 6708, which the service no longer accepts. The current codes are 7791 and 7792, and the regression guard now compares against `terrio crs`, which matched `gdaltransform` to the millimetre on 8 cases.
+
 Regression guard: `tests/test_compare_terrio.py` (run with `pytest -m live`)
 asserts the gap stays under 10 m for representative cases.

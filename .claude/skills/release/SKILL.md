@@ -22,6 +22,7 @@ Fermarsi e riferire all'utente, senza proseguire, se una di queste non regge:
 - `twine` disponibile e credenziali presenti (`~/.pypirc`, oppure
   `TWINE_USERNAME`/`TWINE_PASSWORD`)
 - `gh auth status` autenticato
+- `terrio` installato: senza, i test di confronto live vengono saltati
 
 ## Passi
 

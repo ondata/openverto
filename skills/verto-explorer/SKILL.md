@@ -18,7 +18,7 @@ compatibility: >
   inspect, detect, targets, roundtrip, cache, doctor).
 metadata:
   author: ondata
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Verto Explorer — Guided Coordinate Conversion for Italy

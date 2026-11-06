@@ -155,10 +155,11 @@ Passaggi con le schermate in [`docs/cli.md`](docs/cli.md). Dalla libreria si usa
 
 - Le coordinate geografiche sono **sempre in gradi sessadecimali** (in input e in output); le proiettate in **metri**. Dipende dal CRS, non dalla direzione della conversione.
 - La conversione IGM è **planimetrica**: le quote **Z/M non vengono trasformate**. openverto le preserva inalterate nei GeoJSON (riproietta solo x/y).
+- **Codici RDN2008:** il servizio non accetta più 6707, 6708, 6709 e 6876. Al loro posto si usano 7791, 7792, 7793 e 7795, gli stessi sistemi con assi Est, Nord; con un codice vecchio openverto indica quello da usare.
 - Le conversioni **tra sistemi con lo stesso datum** non sono ammesse dal servizio (vedi `targets`).
 - Il servizio accetta al massimo **32000 coordinate** per richiesta; `batch` esegue automaticamente il chunking.
 - La griglia IGM copre l'Italia e i mari circostanti: coordinate fuori copertura vengono rifiutate (usa `detect`/`inspect` per controllare assi e EPSG).
-- **Il servizio IGM è gratuito e pubblico: non abusarne.** Quando un job supera le **32000 coordinate** (il limite per richiesta) e viene quindi spezzato in più blocchi, openverto mette una pausa di **2 secondi tra un blocco e l'altro** (`--throttle`, o `set_throttle()` nella libreria). Una conversione singola (≤32000) non viene mai rallentata. `--throttle 0` disabilita la pausa, ma usalo con criterio.
+- **Il servizio IGM è gratuito: non abusarne.** Quando un job supera le **32000 coordinate** (il limite per richiesta) e viene quindi spezzato in più blocchi, openverto mette una pausa di **2 secondi tra un blocco e l'altro** (`--throttle`, o `set_throttle()` nella libreria). Una conversione singola (≤32000) non viene mai rallentata. `--throttle 0` disabilita la pausa, ma usalo con criterio.
 
 ## API del servizio IGM
 
