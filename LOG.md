@@ -1,5 +1,12 @@
 # LOG
 
+## 2026-11-06 - controllo giornaliero: confronto con terrio
+
+- Il controllo giornaliero saltava senza dirlo i test di confronto, gli unici con i codici proiettati di RDN2008: per questo il cambio codici non è stato notato. Ora in CI, se manca lo strumento, i test falliscono.
+- Lo strumento è `terrio crs`, al posto di `gdaltransform`: si installa con una riga da PyPI e su 8 casi dà lo stesso risultato di GDAL (scarto 0,000 m). I casi coprono ora anche 7793, 7794, 7795.
+- Nuovo test live: l'elenco dei codici del servizio deve coincidere con `REF_TABLE`.
+- Workflow: secret opzionali `OPENVERTO_UTENTE` e `OPENVERTO_CHIAVE`; la issue automatica si apre solo da `main`.
+
 ## 2026-11-06 - codici RDN2008 allineati al servizio
 
 - `refdata.py`: 6707, 6708, 6709, 6876 sostituiti da 7791, 7792, 7793, 7795. Tabella uguale all'elenco `info` del servizio. `batch` e `targets` tornano a coprire le zone UTM di RDN2008.

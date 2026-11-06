@@ -30,12 +30,12 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      # I test di confronto con GDAL sono gli unici che coprono i codici proiettati
-      # di RDN2008. In CI, senza GDAL, falliscono invece di essere saltati.
-      - name: Install GDAL
-        run: sudo apt-get update && sudo apt-get install -y gdal-bin
+      # I test di confronto con terrio sono gli unici che coprono i codici proiettati
+      # di RDN2008. In CI, senza terrio, falliscono invece di essere saltati.
+      - name: Install terrio
+        run: uv tool install terrio==0.7.0
 
-      # La suite live e' 9 test e una decina di richieste. Il servizio IGM e'
+      # La suite live e' 12 test e una dozzina di richieste. Il servizio IGM e'
       # gratuito e pubblico: una volta al giorno basta per accorgersene presto
       # senza pesare. Il secondo tentativo serve a non aprire una issue per un
       # disservizio di un minuto.
