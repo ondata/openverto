@@ -4,13 +4,15 @@
 This is a sanity guard, NOT an accuracy test: PROJ's default transforms differ
 from the IGM grid by the expected datum uncertainty (sub-metre to a few metres).
 A gross discrepancy (tens of metres) would signal a real bug — swapped axes, the
-wrong datum, or a zone/false-easting mistake. Skipped when GDAL is absent or
-offline; run with ``pytest -m live``.
+wrong datum, or a zone/false-easting mistake. Run with ``pytest -m live``.
+Skipped when GDAL is absent, except in CI: a silent skip there hid the retired
+EPSG codes for an unknown time.
 """
 
 from __future__ import annotations
 
 import math
+import os
 import shutil
 import subprocess
 
@@ -52,7 +54,10 @@ def _metres(a, b, geographic):
     return math.hypot(de, dn)
 
 
-@pytest.mark.skipif(shutil.which("gdaltransform") is None, reason="GDAL not installed")
+@pytest.mark.skipif(
+    shutil.which("gdaltransform") is None and not os.environ.get("CI"),
+    reason="GDAL not installed",
+)
 @pytest.mark.parametrize("label,e,n,s,t,geo", CASES, ids=[c[0] for c in CASES])
 def test_no_gross_divergence_from_gdal(label, e, n, s, t, geo):
     ours = ov.convert([(e, n)], s, t, use_cache=False)[0]

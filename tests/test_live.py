@@ -8,14 +8,14 @@ from __future__ import annotations
 import pytest
 
 import openverto as ov
+from openverto.refdata import REF_TABLE
 
 pytestmark = pytest.mark.live
 
 
-def test_live_systems():
+def test_live_systems_match_the_reference_table():
     rows = ov.systems(refresh=True)
-    assert len(rows) == 20
-    assert any(r["epsg"] == 6706 for r in rows)
+    assert {r["epsg"] for r in rows} == set(REF_TABLE)
 
 
 def test_live_convert_golden():
