@@ -1,5 +1,9 @@
 # LOG
 
+## 2026-11-06 - v0.3.0
+
+- Versione per credenziali IGM, codici RDN2008 allineati al servizio e controllo giornaliero con terrio: dettagli nelle voci sotto. Cambiamento non retrocompatibile: 6707, 6708, 6709 e 6876 non sono più accettati.
+
 ## 2026-11-06 - controllo giornaliero: confronto con terrio
 
 - Il controllo giornaliero saltava senza dirlo i test di confronto, gli unici con i codici proiettati di RDN2008: per questo il cambio codici non è stato notato. Ora in CI, se manca lo strumento, i test falliscono.
