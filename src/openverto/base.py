@@ -48,7 +48,7 @@ _chiave: str | None = None
 
 #: Seconds to pause BETWEEN consecutive conversion batches when a single job
 #: spans more than one request (i.e. more than MAX_COORD coordinates). The IGM
-#: service is free and public — be a good citizen and don't hammer it. A single
+#: service is free — be a good citizen and don't hammer it. A single
 #: batch (<= MAX_COORD) is never delayed. Set to 0 to disable.
 _throttle = 2.0
 

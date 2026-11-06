@@ -1,5 +1,10 @@
 # LOG
 
+## 2026-11-06 - documentazione allineata alla v0.3.0
+
+- README: nota sui codici RDN2008 cambiati; il servizio non è più descritto come pubblico. `docs/release.md` e la skill `/release`: `terrio` fra i prerequisiti, test live senza saltati.
+- Skill `verto-explorer` 1.2 e `docs/openapi.yaml` 1.1.0. `docs/evaluation.md`: nota sui codici e sullo strumento di confronto, la tabella del 2026-06-08 resta com'era.
+
 ## 2026-11-06 - v0.3.0
 
 - Versione per credenziali IGM, codici RDN2008 allineati al servizio e controllo giornaliero con terrio: dettagli nelle voci sotto. Cambiamento non retrocompatibile: 6707, 6708, 6709 e 6876 non sono più accettati.

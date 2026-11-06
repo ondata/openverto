@@ -25,6 +25,7 @@ Patch-version pattern:
 
 - PyPI credentials configured for `twine` (token in `~/.pypirc` or env `TWINE_USERNAME=__token__` / `TWINE_PASSWORD=<pypi-token>`)
 - `gh` CLI authenticated
+- `terrio` installed (`uv tool install terrio`): without it the live comparison tests are skipped, and step 4 proves less
 - Working tree clean and `main` up to date (`git pull`)
 
 > A published PyPI version is permanent: a version number can never be reused,
@@ -54,7 +55,7 @@ grep -A1 'name = "openverto"' uv.lock      # must print the new X.Y.Z
 # 4. Run linter and full test suite — both must pass before any publish step
 uv run ruff check src/
 uv run pytest                 # offline suite (live tests skipped by default)
-uv run pytest -m live         # verify against the live IGM service
+uv run pytest -m live         # verify against the live IGM service (0 skipped)
 
 # 5. Commit and tag
 git add -u
@@ -102,7 +103,7 @@ rejects it and the check fails for the wrong reason.
 - [ ] `LOG.md` updated
 - [ ] Linter passes (`uv run ruff check src/`)
 - [ ] Offline tests pass (`uv run pytest`)
-- [ ] Live tests pass (`uv run pytest -m live`)
+- [ ] Live tests pass with none skipped (`uv run pytest -m live`)
 - [ ] Commit created
 - [ ] Git tag created (`git tag vX.Y.Z`)
 - [ ] Pushed to GitHub with tags (`git push origin main --tags`)

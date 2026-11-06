@@ -2,7 +2,7 @@ openapi: 3.1.0
 
 info:
   title: IGM Verto Online API
-  version: "1.0.0"
+  version: "1.1.0"
   summary: Conversione di coordinate tra i sistemi di riferimento italiani.
   description: |
     Documentazione **non ufficiale** dell'API del servizio

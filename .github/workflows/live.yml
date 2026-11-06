@@ -36,7 +36,7 @@ jobs:
         run: uv tool install terrio==0.7.0
 
       # La suite live e' 12 test e una dozzina di richieste. Il servizio IGM e'
-      # gratuito e pubblico: una volta al giorno basta per accorgersene presto
+      # gratuito: una volta al giorno basta per accorgersene presto
       # senza pesare. Il secondo tentativo serve a non aprire una issue per un
       # disservizio di un minuto.
       - name: Run live tests
