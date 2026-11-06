@@ -13,7 +13,7 @@ from rich.table import Table
 
 from . import __version__
 from . import cache as cache_mod
-from .base import VertoError, set_extra_headers, set_throttle, set_timeout
+from .base import CREDENTIALS_HINT, VertoError, set_credentials, set_extra_headers, set_throttle, set_timeout
 from .transform import (
     MAX_COORD,
     convert as lib_convert,
@@ -57,7 +57,10 @@ app = typer.Typer(
         "service; use 'targets' to list valid destinations.\n\n"
         "Global output: -o/--output table|json|jsonl|csv (jsonl is one compact "
         "object per line, ideal for coordinates).\n\n"
-        "The IGM Verto Online service is free and public: please don't abuse it. "
+        "Credentials: IGM issues them for free to registered users (site login, "
+        "Area Riservata, 'Abbonamenti ai servizi'; they expire every 3 months). Set "
+        "OPENVERTO_UTENTE and OPENVERTO_CHIAVE, or use --utente and --chiave.\n\n"
+        "The IGM Verto Online service is free: please don't abuse it. "
         "Jobs over 32000 coordinates are split into batches, spaced by --throttle "
         "seconds (default 2); a single batch is never delayed. Set 0 to disable."
     ),
@@ -170,6 +173,8 @@ def _split_coord(raw: str) -> list[str]:
 
 
 def _handle_verto_error(exc: VertoError, *, batch: bool = False) -> None:
+    if exc.credentials_rejected:
+        _die(f"{exc}\n→ {CREDENTIALS_HINT}", EXIT_USAGE)
     if exc.outside_grid:
         hint = (
             f"{exc}\n"
@@ -203,6 +208,8 @@ def _main(
     timeout: float = typer.Option(30.0, "--timeout", help="Per-request timeout in seconds"),
     throttle: float = typer.Option(2.0, "--throttle", help="Seconds between batches for jobs over 32000 coords (be kind to the free IGM service; 0 to disable)"),
     header: Optional[list[str]] = typer.Option(None, "--header", "-H", help="Extra HTTP header 'Name: Value' (repeatable)"),
+    utente: Optional[str] = typer.Option(None, "--utente", help="IGM user, the account email (or set OPENVERTO_UTENTE)"),
+    chiave: Optional[str] = typer.Option(None, "--chiave", help="IGM access key (prefer OPENVERTO_CHIAVE, so it stays out of the shell history)"),
     version: bool = typer.Option(False, "--version", "-V", callback=_version_cb, is_eager=True, help="Show version and exit"),
 ) -> None:
     global _output
@@ -211,6 +218,7 @@ def _main(
     _output = output
     set_timeout(timeout)
     set_throttle(throttle)
+    set_credentials(utente, chiave)
     if header:
         parsed = {}
         for h in header:

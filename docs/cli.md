@@ -29,6 +29,8 @@ openverto [OPZIONI GLOBALI] <comando> [OPZIONI COMANDO]
 | `--timeout` | `30.0` | Timeout per ogni richiesta HTTP (secondi) |
 | `--throttle` | `2.0` | Pausa tra batch consecutivi nei job con più di 32 000 coordinate (secondi); `0` per disabilitare |
 | `-H / --header` | — | Header HTTP aggiuntivo `Nome: Valore` (ripetibile) |
+| `--utente` | `OPENVERTO_UTENTE` | Utente IGM, l'email dell'account |
+| `--chiave` | `OPENVERTO_CHIAVE` | Chiave di accesso IGM; meglio la variabile, così non resta nella cronologia della shell |
 | `-V / --version` | — | Mostra la versione ed esce |
 
 ### Formati di output
@@ -48,12 +50,34 @@ openverto -o csv convert ...        # CSV con intestazione
 
 ---
 
+## Credenziali IGM
+
+Il servizio è gratuito, ma IGM ha annunciato che dal 1° novembre 2026 è riservato agli utenti registrati. Al 6 novembre 2026 il controllo non risulta ancora attivo, e senza credenziali openverto invia un valore segnaposto.
+
+1. Accedi al [sito IGM](https://igmi.esercito.difesa.it/) con il tuo account, da "Area riservata/Registrati".
+2. Apri "Abbonamenti ai servizi".
+
+   ![Area riservata del sito IGM, con la voce Abbonamenti ai servizi in fondo al menu](img/igm-area-riservata.png)
+
+3. Copia i valori della riga "Verto On Line": la colonna "Utente" è l'email dell'account, "Chiave di Accesso" è la chiave.
+
+   ![Pagina Abbonamenti utente, con le colonne Servizio, Utente, Chiave di Accesso, Licenza e Scadenza](img/igm-abbonamenti-utente.png)
+
+4. Imposta le due variabili:
+
+```bash
+export OPENVERTO_UTENTE="nome@esempio.it"
+export OPENVERTO_CHIAVE="la-tua-chiave"
+```
+
+Le credenziali scadono ogni 3 mesi: i nuovi valori si trovano nella stessa pagina. L'ordine di precedenza è `--utente`/`--chiave`, poi le variabili, poi il segnaposto. Le coordinate già presenti nella cache locale non passano dal servizio e non usano le credenziali.
+
 ## Codici di uscita
 
 | Codice | Significato |
 |---|---|
 | `0` | Successo |
-| `2` | Errore d'uso (parametri errati, coordinata fuori griglia) |
+| `2` | Errore d'uso (parametri errati, coordinata fuori griglia, credenziali rifiutate) |
 | `3` | EPSG non trovato nel catalogo IGM |
 | `5` | Errore del servizio o di rete |
 

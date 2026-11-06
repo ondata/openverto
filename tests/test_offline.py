@@ -4,6 +4,8 @@ from."""
 
 from __future__ import annotations
 
+import pytest
+
 import openverto as ov
 from openverto.detect import classify_coord
 from openverto.geo import reproject_geojson
@@ -252,3 +254,138 @@ def test_post_parses_clean_body_unchanged(monkeypatch):
     """If the service stops polluting the body, the strict path still works."""
     resp = _post_with_body(monkeypatch, '{"maxCoord": 32000, "srsSupportati": []}')
     assert resp == {"maxCoord": 32000, "srsSupportati": []}
+
+
+# --- credentials ------------------------------------------------------------
+
+
+@pytest.fixture
+def igm(monkeypatch, tmp_path):
+    """Mock the IGM endpoint: returns the request bodies it received."""
+    import json
+
+    import httpx
+
+    import openverto.base as basemod
+
+    seen = []
+    state = {"response": None}
+
+    def handler(request):
+        body = json.loads(request.content)
+        seen.append(body)
+        if state["response"] is not None:
+            return state["response"]
+        coords = [{"e": 1.0, "n": 2.0} for _ in body["coordinate"]]
+        return httpx.Response(200, json={"stato": "successo", "coordinate": coords})
+
+    real_client = httpx.Client
+    monkeypatch.setattr(
+        basemod.httpx,
+        "Client",
+        lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw),
+    )
+    monkeypatch.setenv("OPENVERTO_CACHE_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENVERTO_UTENTE", raising=False)
+    monkeypatch.delenv("OPENVERTO_CHIAVE", raising=False)
+    basemod.set_credentials()
+    yield seen, state
+    basemod.set_credentials()
+
+
+def _sent(seen):
+    return seen[-1]["utente"], seen[-1]["chiave"]
+
+
+def test_credentials_default_placeholder(igm):
+    seen, _ = igm
+    ov.convert([(1, 2)], 4265, 6706, use_cache=False)
+    assert _sent(seen) == ("openverto", "openverto")
+
+
+def test_credentials_from_env(igm, monkeypatch):
+    seen, _ = igm
+    monkeypatch.setenv("OPENVERTO_UTENTE", "env@esempio.it")
+    monkeypatch.setenv("OPENVERTO_CHIAVE", "ENVKEY")
+    ov.convert([(1, 2)], 4265, 6706, use_cache=False)
+    assert _sent(seen) == ("env@esempio.it", "ENVKEY")
+
+
+def test_credentials_set_overrides_env(igm, monkeypatch):
+    seen, _ = igm
+    monkeypatch.setenv("OPENVERTO_UTENTE", "env@esempio.it")
+    monkeypatch.setenv("OPENVERTO_CHIAVE", "ENVKEY")
+    ov.set_credentials("lib@esempio.it", "LIBKEY")
+    ov.convert([(1, 2)], 4265, 6706, use_cache=False)
+    assert _sent(seen) == ("lib@esempio.it", "LIBKEY")
+
+
+def test_cli_credential_options_override_env(igm, monkeypatch):
+    from typer.testing import CliRunner
+
+    from openverto.cli import app
+
+    seen, _ = igm
+    monkeypatch.setenv("OPENVERTO_UTENTE", "env@esempio.it")
+    monkeypatch.setenv("OPENVERTO_CHIAVE", "ENVKEY")
+    args = ["--utente", "cli@esempio.it", "--chiave", "CLIKEY", "convert", "--from", "4265", "--to", "6706", "--no-cache", "1", "2"]
+    res = CliRunner().invoke(app, args)
+    assert res.exit_code == 0, res.output
+    assert _sent(seen) == ("cli@esempio.it", "CLIKEY")
+    assert "CLIKEY" not in res.output
+
+
+def test_key_stays_out_of_cache_files(igm, monkeypatch, tmp_path):
+    monkeypatch.setenv("OPENVERTO_CHIAVE", "SECRETKEY")
+    ov.convert([(1, 2)], 4265, 6706, use_cache=True)
+    files = [p for p in tmp_path.rglob("*") if p.is_file()]
+    assert files
+    assert all(b"SECRETKEY" not in p.read_bytes() for p in files)
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        {"stato": "errore", "dove": "chiave", "messaggio": "Non valida"},
+        {"stato": "errore", "dove": "login", "messaggio": "Abbonamento scaduto"},
+    ],
+)
+def test_cli_rejected_credentials_explain_what_to_do(igm, response):
+    import httpx
+    from typer.testing import CliRunner
+
+    from openverto.cli import app
+
+    _, state = igm
+    state["response"] = httpx.Response(200, json=response)
+    res = CliRunner().invoke(app, ["convert", "--from", "4265", "--to", "6706", "--no-cache", "1", "2"])
+    assert res.exit_code == 2
+    assert "Abbonamenti ai servizi" in res.output.replace("\n", " ")
+
+
+@pytest.mark.parametrize("status", [401, 403])
+def test_http_auth_error_is_a_credentials_rejection_without_retry(igm, status):
+    import httpx
+
+    seen, state = igm
+    state["response"] = httpx.Response(status, text="denied")
+    with pytest.raises(ov.VertoError) as info:
+        ov.convert([(1, 2)], 4265, 6706, use_cache=False)
+    assert info.value.credentials_rejected
+    assert len(seen) == 1
+
+
+def test_skip_invalid_does_not_bisect_on_rejected_credentials(igm):
+    import httpx
+
+    seen, state = igm
+    state["response"] = httpx.Response(200, json={"stato": "errore", "dove": "chiave", "messaggio": "Non valida"})
+    with pytest.raises(ov.VertoError):
+        ov.convert_skipping([(1, 2), (3, 4), (5, 6), (7, 8)], 4265, 6706)
+    assert len(seen) == 1
+
+
+def test_outside_grid_error_is_not_a_credentials_rejection():
+    exc = ov.VertoError("coordinate fuori griglia", "Proj")
+    assert exc.outside_grid
+    assert not exc.credentials_rejected

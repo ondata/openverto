@@ -12,7 +12,7 @@ import time
 from typing import Iterable, Sequence
 
 from . import cache
-from .base import MAX_COORD, VertoError, get_throttle, post
+from .base import MAX_COORD, VertoError, get_credentials, get_throttle, post
 from .refdata import REF_TABLE, datum_family, ref_by_epsg
 from .systems import system_by_epsg, systems
 
@@ -41,10 +41,11 @@ def _to_pairs(coords: Iterable) -> list[Coord]:
 
 def _convert_chunk(in_epsg: int, out_epsg: int, coords: Sequence[Coord]) -> list[Coord]:
     """Convert a single chunk (<= MAX_COORD coordinates) in one request."""
+    utente, chiave = get_credentials()
     body = {
         "richiesta": "conversione",
-        "utente": "openverto",
-        "chiave": "openverto",
+        "utente": utente,
+        "chiave": chiave,
         "inEpsg": in_epsg,
         "outEpsg": out_epsg,
         "coordinate": [{"e": e, "n": n} for e, n in coords],
@@ -145,7 +146,11 @@ def _convert_range(in_epsg, out_epsg, sub, offset, results, skipped, gate) -> No
     gate["first"] = False
     try:
         got = _convert_chunk(in_epsg, out_epsg, sub)
-    except VertoError:
+    except VertoError as exc:
+        # A rejected key fails every coordinate: bisecting would send a request
+        # per point and report them all as invalid.
+        if exc.credentials_rejected:
+            raise
         if len(sub) == 1:
             skipped.append(offset)
             return

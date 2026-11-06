@@ -138,9 +138,18 @@ results, skipped = ov.convert_skipping(coords, 3003, 6707)
 ov.roundtrip([(1500000, 4640000)], 3003, 6707)
 ```
 
-## Autenticazione
+## Credenziali
 
-Nessuna. Il servizio è libero e gratuito; i campi `utente`/`chiave` richiesti dall'API sono segnaposto, riempiti automaticamente.
+Il servizio è gratuito, ma IGM ha annunciato che dal 1° novembre 2026 è riservato agli utenti registrati. Al 6 novembre 2026 il controllo non risulta ancora attivo: openverto funziona anche senza credenziali, e conviene impostarle subito.
+
+Si ottengono con un account sul sito IGM, in Area Riservata > "Abbonamenti ai servizi", e scadono ogni 3 mesi. L'utente è l'email dell'account, la chiave è la "Chiave di Accesso":
+
+```bash
+export OPENVERTO_UTENTE="nome@esempio.it"
+export OPENVERTO_CHIAVE="la-tua-chiave"
+```
+
+Passaggi con le schermate in [`docs/cli.md`](docs/cli.md). Dalla libreria si usa `ov.set_credentials(utente, chiave)`.
 
 ## Note tecniche
 

@@ -1,5 +1,17 @@
 # LOG
 
+## 2026-11-06 - credenziali IGM
+
+- `--utente` e `--chiave`, variabili `OPENVERTO_UTENTE` e `OPENVERTO_CHIAVE`, `set_credentials()`. Senza credenziali resta il segnaposto, che il servizio accetta ancora.
+- Credenziali rifiutate: messaggio che spiega dove trovarle, anche su HTTP 401 e 403, senza nuovi tentativi. Il formato reale del rifiuto non è noto finché IGM non attiva il controllo.
+- `convert_skipping` bisecava su ogni errore del servizio: con la chiave rifiutata avrebbe fatto una richiesta per punto e segnalato tutti i punti come non validi. Ora si ferma subito.
+- Guida con due schermate in `docs/cli.md`, dati personali coperti.
+
+## 2026-11-06 - documentazione IGM aggiornata in `ref/`
+
+- Archiviati manuale del 2026-10-01, nota EPSG, file `.prj` e pagina del servizio, nel formato originale e in Markdown. Il manuale precedente è in `ref/archivio/`; indice e differenze in `ref/README.md`. `ref/` è escluso da git.
+- La pagina IGM dichiara obbligatorie le credenziali dal 1 novembre 2026; il 6 novembre il servizio accetta ancora valori vuoti o inventati. Il servizio non elenca più 6707, 6708, 6709, 6876, sostituiti da 7791, 7792, 7793, 7795. Interventi pianificati in `tasks/todo.md`.
+
 ## 2026-09-11 — CI: controllo schedulato contro il servizio IGM
 
 - `.github/workflows/live.yml`: la suite live (`pytest -m live`) gira ogni giorno alle 06:17 UTC e apre una issue quando fallisce. Colma il buco che ha fatto passare la v0.2.4: i test live sono esclusi dalla CI normale (`addopts = "-m 'not live'"`) e la CI parte solo su push e PR, quindi un cambiamento lato IGM non coincide con nessun evento del repo e non poteva farsi notare.

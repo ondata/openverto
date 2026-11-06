@@ -2,9 +2,9 @@
 
 The service is a single POST endpoint discriminated by the body field
 ``richiesta``: ``"info"`` lists the supported reference systems, ``"conversione"``
-transforms an array of ``{e, n}`` coordinates between two EPSG codes. The
-``utente``/``chiave`` fields are mandatory but ignored by the service (they are
-NOT authentication); we send fixed placeholders.
+transforms an array of ``{e, n}`` coordinates between two EPSG codes. Conversions
+carry the ``utente``/``chiave`` credentials issued by IGM (see
+:func:`get_credentials`).
 
 Service-level errors are returned inside an HTTP 200 body as
 ``{"stato": "errore", "dove": ..., "messaggio": ...}`` and surface as
@@ -14,6 +14,7 @@ Service-level errors are returned inside an HTTP 200 body as
 from __future__ import annotations
 
 import json
+import os
 import time
 
 import httpx
@@ -26,10 +27,24 @@ MAX_COORD = 32000
 
 _USER_AGENT = "openverto"
 
+#: Sent when no credentials are configured. IGM announced mandatory credentials
+#: from 2026-11-01, but on 2026-11-06 the service still accepts any value.
+_PLACEHOLDER_CREDENTIAL = "openverto"
+
+#: Message shown when the service rejects the credentials.
+CREDENTIALS_HINT = (
+    "Le credenziali IGM sono gratuite: accedi al sito IGM, Area Riservata > "
+    "'Abbonamenti ai servizi', e usa l'email come utente e la 'Chiave di Accesso' "
+    "come chiave. Scadono ogni 3 mesi. Impostale con OPENVERTO_UTENTE e "
+    "OPENVERTO_CHIAVE, oppure con --utente e --chiave."
+)
+
 # Module-level configuration (mutable via the setters below).
 _base_url = DEFAULT_BASE_URL
 _timeout = 30.0
 _extra_headers: dict[str, str] = {}
+_utente: str | None = None
+_chiave: str | None = None
 
 #: Seconds to pause BETWEEN consecutive conversion batches when a single job
 #: spans more than one request (i.e. more than MAX_COORD coordinates). The IGM
@@ -82,6 +97,24 @@ def get_extra_headers() -> dict[str, str]:
     return dict(_extra_headers)
 
 
+def set_credentials(utente: str | None = None, chiave: str | None = None) -> None:
+    """Set the IGM credentials, overriding the environment. ``None`` clears a field."""
+    global _utente, _chiave
+    _utente, _chiave = utente, chiave
+
+
+def get_credentials() -> tuple[str, str]:
+    """Return ``(utente, chiave)`` to send with a conversion.
+
+    Each field comes from :func:`set_credentials`, then from ``OPENVERTO_UTENTE``
+    / ``OPENVERTO_CHIAVE``, then from a placeholder.
+    """
+    return (
+        _utente or os.environ.get("OPENVERTO_UTENTE") or _PLACEHOLDER_CREDENTIAL,
+        _chiave or os.environ.get("OPENVERTO_CHIAVE") or _PLACEHOLDER_CREDENTIAL,
+    )
+
+
 class VertoError(Exception):
     """A service-level error reported by Verto Online (``stato: errore``).
 
@@ -107,6 +140,19 @@ class VertoError(Exception):
             return True
         m = (self.messaggio or "").lower()
         return "outside grid" in m or "griglia" in m
+
+    @property
+    def credentials_rejected(self) -> bool:
+        """Whether the service refused ``utente``/``chiave``.
+
+        The wording of a rejection is unknown until IGM turns the check on, so
+        this matches the field name (``dove: utente`` is what a missing field
+        returns today) and the words a rejection is likely to use.
+        """
+        if self.dove.strip().lower() in ("utente", "chiave"):
+            return True
+        m = (self.messaggio or "").lower()
+        return any(w in m for w in ("utente", "chiave", "credenzial", "abbonament", "autorizz"))
 
 
 def _salvage_json(text: str) -> dict | None:
@@ -140,6 +186,8 @@ def post(body: dict, *, retries: int = 2) -> dict:
         try:
             with httpx.Client(timeout=_timeout) as client:
                 resp = client.post(_base_url, json=body, headers=headers)
+            if resp.status_code in (401, 403):
+                raise VertoError(f"credenziali rifiutate (HTTP {resp.status_code})", "chiave")
             if resp.status_code >= 500 and attempt < retries:
                 last_exc = httpx.HTTPStatusError(
                     f"server error {resp.status_code}", request=resp.request, response=resp

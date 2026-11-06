@@ -58,6 +58,7 @@ In structured modes stdout is pure data and errors go to stderr. Exit codes:
   no swap when reprojecting GeoJSON.
 - **Geographic values are always decimal degrees** (gradi sessadecimali), never
   degrees-minutes-seconds. Convert DMS to decimal first.
+- **Credentials:** IGM issues free ones (site login, Area Riservata, "Abbonamenti ai servizi"; they expire every 3 months). Read them from `OPENVERTO_UTENTE` and `OPENVERTO_CHIAVE`; never print the key or pass it as an argument.
 - **Same-datum conversions are rejected** (e.g. `6706` → `6707`, both RDN2008).
   Always cross a datum family boundary; check with `targets`.
 - **`detect` recovers the projection/zone, never the datum**: magnitude alone
