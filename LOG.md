@@ -1,5 +1,10 @@
 # LOG
 
+## 2026-11-07 - certificato IGM scaduto
+
+- Il controllo giornaliero è fallito: il certificato TLS di `igmi.esercito.difesa.it` è scaduto il 6 novembre alle 23:59:59 GMT. Con `curl -k` il servizio risponde 200. Segnalato a IGM nella issue #5, aperta la #8 dal workflow; nessuna modifica al client.
+- `.github/live-failure-issue.md`: il certificato è il primo controllo della lista.
+
 ## 2026-11-06 - documentazione allineata alla v0.3.0
 
 - README: nota sui codici RDN2008 cambiati; il servizio non è più descritto come pubblico. `docs/release.md` e la skill `/release`: `terrio` fra i prerequisiti, test live senza saltati.

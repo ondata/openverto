@@ -4,6 +4,12 @@ I test live non girano nella CI normale, perché `addopts = "-m 'not live'"` li 
 
 Cosa guardare, nell'ordine.
 
+Se l'errore è `CERTIFICATE_VERIFY_FAILED`, il certificato TLS del server IGM non è valido e tutti i test falliscono insieme. Il problema è lato server, non in openverto, e anche il `curl` più sotto fallisce. Si controlla con il comando qui sotto e si segnala a IGM (è successo il 7 novembre 2026, issue #5). La verifica del certificato non va disattivata. Quando il controllo torna verde, questa issue va chiusa a mano.
+
+```
+echo | openssl s_client -connect igmi.esercito.difesa.it:443 -servername igmi.esercito.difesa.it 2>/dev/null | openssl x509 -noout -subject -issuer -enddate
+```
+
 Se l'errore parla di credenziali, IGM ha attivato il controllo annunciato per il 1° novembre 2026. Vanno impostati i secret `OPENVERTO_UTENTE` e `OPENVERTO_CHIAVE` del repo, e rinnovati ogni 3 mesi. Va anche confrontata la risposta reale con `VertoError.credentials_rejected` in `src/openverto/base.py`, scritta prima di poter vedere un rifiuto vero.
 
 Se `test_live_systems_match_the_reference_table` fallisce, l'elenco dei codici del servizio è cambiato: si aggiorna `REF_TABLE` in `src/openverto/refdata.py`, e i codici tolti vanno in `RETIRED_EPSG`.
