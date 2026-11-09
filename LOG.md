@@ -1,5 +1,14 @@
 # LOG
 
+## 2026-11-09 - prompt per agenti AI nel README
+
+- README: prompt da copiare in un agente AI, senza skill né MCP (START-001). Comandi controllati sulla release PyPI 0.4.0.
+- Prove con Claude Code 2.1.319, Sonnet, WSL, cartella vuota: con la 0.4.0 si ferma sul certificato IGM scaduto senza usare `--insecure`; senza shell dichiara il blocco e dà i comandi; senza openverto chiede conferma prima di installare. Conversione riuscita non provata, per il certificato.
+
+## 2026-11-09 - skill `verto-explorer` 1.4
+
+- Installazione da PyPI in testa. Aggiunti `--insecure` (solo dopo conferma dell'utente), `--throttle`, `--no-cache`, `--yes` e le altre opzioni di `grid`; `grid` nell'elenco dei comandi.
+
 ## 2026-11-09 - badge DeepWiki
 
 - README: badge DeepWiki servito da shields.io. L'immagine `deepwiki.com/badge.svg` non si vedeva su GitHub: il proxy Camo riceveva 502 per la challenge di Vercel.

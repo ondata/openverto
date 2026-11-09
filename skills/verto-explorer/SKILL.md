@@ -15,10 +15,10 @@ description: >
 license: MIT
 compatibility: >
   Requires the openverto CLI (openverto systems, convert, batch, geojson,
-  inspect, detect, targets, roundtrip, cache, doctor).
+  inspect, detect, targets, roundtrip, grid, cache, doctor).
 metadata:
   author: ondata
-  version: "1.3"
+  version: "1.4"
 ---
 
 # Verto Explorer — Guided Coordinate Conversion for Italy
@@ -26,6 +26,19 @@ metadata:
 This skill uses the **openverto CLI** to convert coordinates between every
 Italian reference system through the authoritative **IGM Verto Online** service,
 with no NTv2 grid files installed locally.
+
+## Install
+
+If `openverto --version` fails, install it from PyPI (Python 3.12+):
+
+```bash
+uv tool install openverto   # recommended
+pip install openverto       # alternative
+```
+
+To update an existing install, run `uv tool upgrade openverto` (`grid` needs v0.4.0 or later). For a one-off run without installing, use `uvx openverto <command>`.
+
+## Usage
 
 Every `openverto` command supports `--help`:
 
@@ -59,6 +72,7 @@ In structured modes stdout is pure data and errors go to stderr. Exit codes:
 - **Geographic values are always decimal degrees** (gradi sessadecimali), never
   degrees-minutes-seconds. Convert DMS to decimal first.
 - **Credentials:** IGM issues free ones (site login, Area Riservata, "Abbonamenti ai servizi"; they expire every 3 months). Read them from `OPENVERTO_UTENTE` and `OPENVERTO_CHIAVE`; never print the key or pass it as an argument.
+- **Expired IGM certificate:** if a call fails with `certificate has expired`, tell the user and ask before retrying with the global `--insecure` (`-k`), placed before the command: `openverto -k -o jsonl convert ...`. It skips the check of the server identity, on a connection that also carries the credentials, so never add it on your own.
 - **Retired codes:** the service no longer accepts `6707`, `6708`, `6709`, `6876`; use `7791`, `7792`, `7793`, `7795` (same systems, east-north axes).
 - **Same-datum conversions are rejected** (e.g. `6706` → `7791`, both RDN2008).
   Always cross a datum family boundary; check with `targets`.
@@ -132,7 +146,7 @@ openverto geojson aree.geojson --from 4230 --to 6706 --out out.geojson
 ```
 
 `batch` auto-detects common column aliases (est/nord/lon/lat/x/y) and auto-chunks
-at the 32000-coordinate service cap. Results are cached for offline replay.
+at the 32000-coordinate service cap, with a pause between batches (global `--throttle`, default 2 seconds). Results are cached for offline replay; add `--no-cache` to `convert` to force a fresh call.
 
 **CSV input (read with DuckDB).** Default format, no option needed: a header row
 and a **dot** decimal separator (`12.4924`); the **delimiter** (`,`, `;`, tab,
@@ -192,6 +206,11 @@ gdalwarp -s_srs "+proj=longlat +ellps=intl +nadgrids=$PWD/roma40_rdn2008.tif +no
 ```
 
 The rectangle must be fully inside the IGM coverage: one node outside fails the request and no grid is written, so narrow `--bbox` to the working area (all of Italy is rejected). Always run `--dry-run` first. The service is free and shared: do not loop over bboxes to find the coverage.
+
+- **Over 10 requests** the command stops with exit code 2 until you add `--yes`: show the user the `--dry-run` estimate before confirming.
+- **Lattice:** the default step is the IGM one (`--step-lon 450 --step-lat 300`, arc-seconds, 7.5' x 5') and the nodes align to the IGM grid nodes. Change it only with a reason; with a custom step, the lattice starts from the bbox corner unless `--origin-lon` and `--origin-lat` are set.
+- **Interrupted jobs:** completed batches stay in the cache (`--cache-dir` to choose where), so re-running the same command resumes. `--pause` sets the seconds between requests (default 2).
+- **Output:** next to the GeoTIFF it writes `<out>.report.json`.
 
 ## Quick reference — the 20 supported systems by datum family
 

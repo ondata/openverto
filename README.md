@@ -14,6 +14,28 @@ Pensato per essere **orchestrato da agenti AI**: output `--json`/`--jsonl`/`--cs
 
 > **Con un'AI.** openverto può essere usato anche tramite un AI, che leggerà il suo help per capirne il funzionamento. Il repo include anche la Agent Skill [`verto-explorer`](skills/verto-explorer/SKILL.md), che si [installa così](docs/skill/README.md).
 
+## Prompt per iniziare con un agente AI
+
+Per provare openverto senza installare skill o server MCP, copia questo testo in un agente AI che possa eseguire comandi.
+
+```text
+Aiutami a usare openverto (https://github.com/ondata/openverto), una CLI Python che trasforma coordinate tra i sistemi di riferimento italiani (Roma40, ED50, IGM95/ETRS89, RDN2008) tramite il servizio ufficiale IGM Verto Online. Non è un catalogo di dati: trasforma coordinate che ho già.
+
+Procedi così:
+1. Controlla se `openverto --version` funziona. Se manca e l'ambiente lo permette, chiedimi conferma e installalo con `uv tool install openverto` (oppure `pip install openverto`).
+2. Leggi `openverto --help` e `openverto convert --help`.
+3. Esegui una sola conversione di prova, da Roma40 a RDN2008, e mostrami il risultato reale: `openverto convert --from 4265 --to 6706 12.4924 41.8902`
+4. Proponimi cosa fare con le mie coordinate. Usa `systems`, `inspect`, `targets` o `detect` solo se servono a capire il passo successivo.
+
+Regole:
+- Nei comandi metti sempre prima est o longitudine e poi nord o latitudine, anche per i sistemi EPSG registrati come lat/lon. Con le mie coordinate controlla EPSG e assi con `inspect` prima di convertire.
+- Il servizio IGM è gratuito e condiviso: niente richieste inutili né conversioni massive senza una mia richiesta.
+- Se compare un errore sul certificato, spiegamelo e non usare `--insecure` finché non lo accetto esplicitamente.
+- Le credenziali IGM (variabili `OPENVERTO_UTENTE` e `OPENVERTO_CHIAVE`) servono solo se il servizio le chiede. Non chiedermi di incollare la chiave in chat.
+- Per il resto segui la documentazione: https://github.com/ondata/openverto/blob/main/docs/cli.md
+
+Mostrami i comandi usati e i risultati reali, con la fonte e i limiti. Se installazione, rete, credenziali o esecuzione non sono disponibili, dimmi cosa è bloccato e dammi i comandi documentati da lanciare a mano. Non inventare risultati e non dire di aver eseguito ciò che non hai eseguito. Rispondimi nella mia lingua.
+```
 
 ## Installazione
 
