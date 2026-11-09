@@ -1,5 +1,9 @@
 # LOG
 
+## 2026-11-09 - badge DeepWiki
+
+- README: badge DeepWiki servito da shields.io. L'immagine `deepwiki.com/badge.svg` non si vedeva su GitHub: il proxy Camo riceveva 502 per la challenge di Vercel.
+
 ## 2026-11-09 - v0.4.0
 
 - Versione per il comando `grid` e per il blocco che limita a una richiesta alla volta verso IGM: dettagli nella voce sotto.

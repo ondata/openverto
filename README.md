@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/openverto)](https://pypi.org/project/openverto/)
 [![GitHub](https://img.shields.io/badge/github-ondata%2Fopenverto-blue?logo=github)](https://github.com/ondata/openverto)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ondata/openverto)
+[![Ask DeepWiki](https://img.shields.io/badge/Ask-DeepWiki-blue)](https://deepwiki.com/ondata/openverto)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Newsletter](https://img.shields.io/badge/newsletter-ondata-FF6719?logo=substack)](https://ondata.substack.com/)
 
