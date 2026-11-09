@@ -1,5 +1,10 @@
 # LOG
 
+## 2026-11-09 - v0.4.0
+
+- Versione per il comando `grid` e per il blocco che limita a una richiesta alla volta verso IGM: dettagli nella voce sotto.
+- Test: lint pulito, 112 offline passati. Live con verifica attiva: 12 falliti su 12 per il certificato IGM scaduto. Live senza verifica, solo come diagnosi: 12 su 12 passati.
+
 ## 2026-11-09 - comando `grid`
 
 - Nuovo comando `grid`: griglia di spostamento 2D (GeoTIFF nel formato griglie di PROJ) campionando Verto Online su un reticolo regolare. Solo sistemi geografici di Verto, rettangolo tutto dentro la copertura.
