@@ -1,5 +1,16 @@
 # LOG
 
+## 2026-11-09 - v0.3.1
+
+- Versione per l'opzione `--insecure` / `-k`, utile finché il certificato IGM resta scaduto: dettagli nella voce sotto.
+- Test: lint pulito, 74 offline passati. Live con verifica attiva: 12 falliti su 12 per il certificato. Live senza verifica, solo come diagnosi: 12 su 12 passati.
+
+## 2026-11-08 - skip esplicito della verifica SSL
+
+- Nuova opzione globale `--insecure` / `-k`: salta la verifica TLS nel client condiviso; verifica attiva per default e nessun fallback automatico. Ogni invocazione senza flag ripristina la verifica.
+- README e riferimento CLI: uso e rischi per identità del server e credenziali.
+- Verifica: 74 test offline passati, lint pulito. CLI installata localmente con `uv tool install --force /home/aborruso/git/idee/openverto`; conversione live senza cache riuscita con `--insecure`, errore di certificato scaduto senza flag.
+
 ## 2026-11-07 - certificato IGM scaduto
 
 - Il controllo giornaliero è fallito: il certificato TLS di `igmi.esercito.difesa.it` è scaduto il 6 novembre alle 23:59:59 GMT. Con `curl -k` il servizio risponde 200. Segnalato a IGM nella issue #5, aperta la #8 dal workflow; nessuna modifica al client.

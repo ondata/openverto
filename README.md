@@ -59,6 +59,20 @@ cat comuni.csv | openverto batch - --from 4265 --to 6706 --decimal , --e-col lon
 openverto geojson aree.geojson --from 4230 --to 6706 --out out.geojson
 ```
 
+### Certificato SSL
+
+La verifica del certificato TLS è sempre attiva per default. Se il certificato
+IGM è scaduto, puoi saltare esplicitamente il controllo con `--insecure` (o `-k`),
+prima del sottocomando:
+
+```bash
+openverto --insecure convert --from 4265 --to 6706 --no-cache 12.4924 41.8902
+```
+
+**Attenzione:** lo skip non verifica l'identità del server e consente attacchi
+di impersonificazione, anche alle credenziali inviate. Usalo solo se accetti
+questo rischio; non viene mai attivato automaticamente dopo un errore SSL.
+
 ### Lettura del CSV (comando `batch`)
 
 Il CSV di input è letto con **DuckDB**: il **delimitatore** (`,`, `;`, tab, `|`) è

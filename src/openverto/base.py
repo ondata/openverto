@@ -42,6 +42,7 @@ CREDENTIALS_HINT = (
 # Module-level configuration (mutable via the setters below).
 _base_url = DEFAULT_BASE_URL
 _timeout = 30.0
+_verify_ssl = True
 _extra_headers: dict[str, str] = {}
 _utente: str | None = None
 _chiave: str | None = None
@@ -71,6 +72,16 @@ def set_timeout(seconds: float) -> None:
 
 def get_timeout() -> float:
     return _timeout
+
+
+def set_verify_ssl(verify: bool) -> None:
+    """Enable TLS certificate verification (default True).
+
+    Disabling verification allows server impersonation; use only explicitly
+    when accepting that risk, including for any credentials sent.
+    """
+    global _verify_ssl
+    _verify_ssl = verify
 
 
 def set_throttle(seconds: float) -> None:
@@ -184,7 +195,7 @@ def post(body: dict, *, retries: int = 2) -> dict:
     last_exc: Exception | None = None
     for attempt in range(retries + 1):
         try:
-            with httpx.Client(timeout=_timeout) as client:
+            with httpx.Client(timeout=_timeout, verify=_verify_ssl) as client:
                 resp = client.post(_base_url, json=body, headers=headers)
             if resp.status_code in (401, 403):
                 raise VertoError(f"credenziali rifiutate (HTTP {resp.status_code})", "chiave")
