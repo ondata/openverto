@@ -17,6 +17,11 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      # I test di `grid` controllano il file con i veri PROJ e GDAL: in CI, se
+      # mancano, falliscono invece di essere saltati.
+      - name: Install GDAL and PROJ
+        run: sudo apt-get update && sudo apt-get install -y gdal-bin proj-bin
+
       - name: Run tests
         run: uv run pytest          # live tests skipped by default
 

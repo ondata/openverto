@@ -15,9 +15,15 @@ from __future__ import annotations
 
 import json
 import os
+import contextlib
 import time
+from collections.abc import Iterator
+from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 
 import httpx
+from filelock import FileLock
+from platformdirs import user_cache_dir
 
 #: Default endpoint (relative path ``/volapi`` is already included).
 DEFAULT_BASE_URL = "https://igmi.esercito.difesa.it/porta-magna/wps/volapi"
@@ -25,7 +31,14 @@ DEFAULT_BASE_URL = "https://igmi.esercito.difesa.it/porta-magna/wps/volapi"
 #: Maximum number of coordinates accepted per ``conversione`` request.
 MAX_COORD = 32000
 
-_USER_AGENT = "openverto"
+try:
+    _VERSION = version("openverto")
+except PackageNotFoundError:
+    _VERSION = "0.0.0"
+
+#: Tells IGM who is calling and where to find the project.
+USER_AGENT_VERSION = f"openverto/{_VERSION}"
+_USER_AGENT = f"{USER_AGENT_VERSION} (+https://github.com/ondata/openverto)"
 
 #: Sent when no credentials are configured. IGM announced mandatory credentials
 #: from 2026-11-01, but on 2026-11-06 the service still accepts any value.
@@ -182,6 +195,30 @@ def _salvage_json(text: str) -> dict | None:
     return obj if isinstance(obj, dict) else None
 
 
+@contextlib.contextmanager
+def _one_request_at_a_time() -> Iterator[None]:
+    """Serialize requests to the free IGM service across threads and processes.
+
+    Parallel CLI runs and threaded library callers queue here, one request at a
+    time. The lock lives in the user cache on purpose, outside
+    ``OPENVERTO_CACHE_DIR``: two runs with different caches still share it. The
+    operating system releases it if a process dies. Where the lock cannot be
+    created (read-only home) the request goes ahead unserialized.
+    """
+    path = Path(user_cache_dir("openverto")) / "service.lock"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        lock = FileLock(path)
+        lock.acquire()
+    except OSError:
+        yield
+        return
+    try:
+        yield
+    finally:
+        lock.release()
+
+
 def post(body: dict, *, retries: int = 2) -> dict:
     """POST a request body to the Verto endpoint and return the parsed JSON.
 
@@ -195,7 +232,7 @@ def post(body: dict, *, retries: int = 2) -> dict:
     last_exc: Exception | None = None
     for attempt in range(retries + 1):
         try:
-            with httpx.Client(timeout=_timeout, verify=_verify_ssl) as client:
+            with _one_request_at_a_time(), httpx.Client(timeout=_timeout, verify=_verify_ssl) as client:
                 resp = client.post(_base_url, json=body, headers=headers)
             if resp.status_code in (401, 403):
                 raise VertoError(f"credenziali rifiutate (HTTP {resp.status_code})", "chiave")

@@ -18,7 +18,7 @@ compatibility: >
   inspect, detect, targets, roundtrip, cache, doctor).
 metadata:
   author: ondata
-  version: "1.2"
+  version: "1.3"
 ---
 
 # Verto Explorer — Guided Coordinate Conversion for Italy
@@ -180,6 +180,18 @@ Italy is valid; a point in another country or open ocean is rejected with
   ```
 
 ---
+
+## Building a shift grid for GDAL and PROJ
+
+When the user needs to convert a raster, or many conversions without calling the service, `openverto grid` samples Verto on a lattice and writes a PROJ GeoTIFF grid. **Grids are 2D only**: heights are not transformed. Source and target must be geographic Verto systems of different datums (4265, 4230, 4670, 6706).
+
+```bash
+openverto grid --from 4265 --to 6706 --bbox 11 43.5 12 44 --dry-run
+openverto grid --from 4265 --to 6706 --bbox 11 43.5 12 44 --out roma40_rdn2008.tif
+gdalwarp -s_srs "+proj=longlat +ellps=intl +nadgrids=$PWD/roma40_rdn2008.tif +no_defs +type=crs" -t_srs EPSG:6706 in.tif out.tif
+```
+
+The rectangle must be fully inside the IGM coverage: one node outside fails the request and no grid is written, so narrow `--bbox` to the working area (all of Italy is rejected). Always run `--dry-run` first. The service is free and shared: do not loop over bboxes to find the coverage.
 
 ## Quick reference — the 20 supported systems by datum family
 

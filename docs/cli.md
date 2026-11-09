@@ -319,6 +319,29 @@ openverto -o json roundtrip --from 3003 --to 7791 1500000 4640000
 
 ---
 
+### `grid` - griglia di spostamento per GDAL e PROJ
+
+Costruisce una griglia di spostamento orizzontale (GeoTIFF nel formato griglie di PROJ) campionando Verto Online sui nodi di un reticolo regolare. Le griglie sono solo 2D: latitudine e longitudine, nessuna quota. Esempi per riproiettare un raster con `gdalwarp` nel [README](../README.md).
+
+```bash
+openverto grid --from 4265 --to 6706 --bbox 11 43.5 12 44 --dry-run
+openverto grid --from 4265 --to 6706 --bbox 11 43.5 12 44 --out roma40_rdn2008.tif
+```
+
+| Opzione | Default | Descrizione |
+|---|---|---|
+| `--from`, `--to` | obbligatorie | EPSG geografici di Verto, di datum diversi: 4265, 4230, 4670, 6706 |
+| `--bbox` | obbligatoria | Ovest sud est nord, in gradi del sistema di partenza; tutto dentro la copertura IGM |
+| `--step-lon`, `--step-lat` | `450`, `300` | Passo in secondi d'arco (7,5' x 5') |
+| `--origin-lon`, `--origin-lat` | nodi IGM con il passo IGM, altrimenti angolo del bbox | Punto a cui allineare il reticolo |
+| `--out` | obbligatoria senza `--dry-run` | GeoTIFF di uscita; accanto scrive `<out>.report.json` |
+| `--pause` | `2` | Secondi fra una richiesta e l'altra |
+| `--cache-dir` | cache di openverto | Cartella dei batch già riusciti |
+| `--dry-run` | no | Stampa nodi, richieste e tempo stimato, senza chiamare il servizio |
+| `--yes` | no | Conferma un lavoro sopra le 10 richieste |
+
+Se un nodo cade fuori copertura la richiesta fallisce, non viene scritta nessuna griglia e il comando esce con codice 2. Il `--bbox` va ristretto.
+
 ### `cache` — gestione della cache offline
 
 ```bash
