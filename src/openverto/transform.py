@@ -46,7 +46,7 @@ def _reject_retired(in_epsg: int, out_epsg: int) -> None:
             raise VertoError(retired_message(epsg), field)
 
 
-def _convert_chunk(in_epsg: int, out_epsg: int, coords: Sequence[Coord]) -> list[Coord]:
+def _convert_chunk(in_epsg: int, out_epsg: int, coords: Sequence[Coord], *, retries: int = 2) -> list[Coord]:
     """Convert a single chunk (<= MAX_COORD coordinates) in one request."""
     utente, chiave = get_credentials()
     body = {
@@ -57,7 +57,7 @@ def _convert_chunk(in_epsg: int, out_epsg: int, coords: Sequence[Coord]) -> list
         "outEpsg": out_epsg,
         "coordinate": [{"e": e, "n": n} for e, n in coords],
     }
-    resp = post(body)
+    resp = post(body, retries=retries)
     if resp.get("stato") != "successo":
         raise VertoError(resp.get("messaggio", "unknown error"), resp.get("dove", ""))
     out = resp.get("coordinate", [])

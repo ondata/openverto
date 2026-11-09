@@ -26,10 +26,15 @@ from .base import (
 )
 from .transform import convert, convert_skipping, inspect, roundtrip, targets
 from .detect import detect
+from .grid import GridError, build_grid, build_lattice, plan_grid
 from .geo import read_csv_file, reproject_geojson, resolve_column, rows_to_geojson
 from .systems import info, system_by_epsg, systems
 
 __all__ = [
+    "GridError",
+    "build_grid",
+    "build_lattice",
+    "plan_grid",
     "systems",
     "system_by_epsg",
     "info",

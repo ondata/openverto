@@ -27,6 +27,11 @@ def cache_dir() -> Path:
     return d
 
 
+def grid_dir() -> Path:
+    """Return the directory of the cached ``grid`` batches, without creating it."""
+    return cache_dir() / "grid"
+
+
 def _systems_file() -> Path:
     return cache_dir() / "systems.json"
 
@@ -103,20 +108,23 @@ def stats() -> dict:
     """Return cache statistics for the ``cache --stats`` command."""
     conv = _conv_file()
     syst = _systems_file()
+    grid = list(grid_dir().glob("*.json"))
     return {
         "cache_dir": str(cache_dir()),
         "systems_cached": len(load_systems()),
         "conversions_cached": len(ConvCache.load()),
         "conversions_file": str(conv) if conv.exists() else None,
+        "grid_batches_cached": len(grid),
         "size_bytes": (conv.stat().st_size if conv.exists() else 0)
-        + (syst.stat().st_size if syst.exists() else 0),
+        + (syst.stat().st_size if syst.exists() else 0)
+        + sum(f.stat().st_size for f in grid),
     }
 
 
 def clear() -> list[str]:
     """Delete cache files. Returns the paths removed."""
     removed = []
-    for f in (_conv_file(), _systems_file()):
+    for f in (_conv_file(), _systems_file(), *grid_dir().glob("*.json")):
         if f.exists():
             try:
                 f.unlink()

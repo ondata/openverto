@@ -187,7 +187,7 @@ def test_batch_accepts_valid_target_combination(tmp_path, monkeypatch):
     """batch must pass the target check for a known-valid from/to pair."""
     import openverto.transform as convmod
 
-    def fake_post(body):
+    def fake_post(body, **kwargs):
         return {
             "stato": "successo",
             "coordinate": [{"e": c["e"] + 0.001, "n": c["n"] + 0.002} for c in body["coordinate"]],

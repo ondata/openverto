@@ -1,5 +1,17 @@
 # LOG
 
+## 2026-11-09 - comando `grid`
+
+- Nuovo comando `grid`: griglia di spostamento 2D (GeoTIFF nel formato griglie di PROJ) campionando Verto Online su un reticolo regolare. Solo sistemi geografici di Verto, rettangolo tutto dentro la copertura.
+- Il rettangolo sull'Italia intera (6 35 19 47,5) è rifiutato da Verto: una coordinata fuori copertura fa fallire la richiesta. Niente bisezione, che costerebbe almeno una richiesta per nodo scartato.
+- Niente `nodata`: PROJ 9.6 interpola il valore come fosse un numero (punto spostato di oltre 2 gradi).
+- Batch da `maxCoord`, una richiesta alla volta, cache per batch e ripresa, backoff, stop dopo 3 errori, `--yes` sopra 10 richieste. User-Agent ora con versione e URL del progetto.
+- GeoTIFF scritto con la sola libreria standard. Test su risposte registrate con `gdalinfo`, `cct`, `gdalwarp`: in CI si installano GDAL e PROJ. `terrio` non applica le griglie.
+- Con il passo IGM il reticolo si allinea di default ai nodi dei grigliati IGM. Su 300 punti fra i nodi, in Italia centrale, 0,09 cm al massimo da Verto; non allineato 4,35 cm.
+- Una sola richiesta alla volta verso IGM per ogni utente della macchina, per CLI e libreria: blocco su file in `base.post` con `filelock` (nuova dipendenza), fuori da `OPENVERTO_CACHE_DIR`.
+- Risposte registrate e misure ottenute con la verifica TLS disattivata, perché il certificato IGM era scaduto: da rifare al rinnovo.
+- README: corretta la frase sulla proprietà dei risultati, in contrasto con le condizioni d'uso.
+
 ## 2026-11-09 - v0.3.1
 
 - Versione per l'opzione `--insecure` / `-k`, utile finché il certificato IGM resta scaduto: dettagli nella voce sotto.

@@ -32,6 +32,18 @@ from .geo import (
     resolve_column,
     rows_to_geojson,
 )
+from .grid import (
+    CONFIRM_THRESHOLD,
+    DEFAULT_PAUSE,
+    DEFAULT_STEP_LAT,
+    DEFAULT_STEP_LON,
+    GridError,
+    build_grid,
+    build_lattice,
+    check_systems,
+    plan_grid,
+)
+from .systems import info as lib_info
 from .systems import systems as lib_systems
 
 # Exit codes (agent-friendly, mirror the Go CLI).
@@ -552,6 +564,74 @@ def cache(
         _emit({"cleared": removed})
         return
     _emit(cache_mod.stats())
+
+
+@app.command()
+def grid(
+    from_epsg: str = typer.Option(..., "--from", help="Source geographic EPSG (e.g. 4265)"),
+    to_epsg: str = typer.Option(..., "--to", help="Target geographic EPSG, different datum (e.g. 6706)"),
+    bbox: tuple[float, float, float, float] = typer.Option(..., "--bbox", help="West south east north, in degrees of the source datum; must be fully inside the IGM coverage"),
+    step_lon: float = typer.Option(DEFAULT_STEP_LON, "--step-lon", help="Longitude step in arc-seconds (default: the IGM 7.5')"),
+    step_lat: float = typer.Option(DEFAULT_STEP_LAT, "--step-lat", help="Latitude step in arc-seconds (default: the IGM 5')"),
+    origin_lon: Optional[float] = typer.Option(None, "--origin-lon", help="Longitude the lattice is aligned to (default: the IGM nodes with the IGM step, else bbox west)"),
+    origin_lat: Optional[float] = typer.Option(None, "--origin-lat", help="Latitude the lattice is aligned to (default: the IGM nodes with the IGM step, else bbox south)"),
+    out: Optional[str] = typer.Option(None, "--out", help="Output GeoTIFF (a <out>.report.json is written next to it)"),
+    pause: float = typer.Option(DEFAULT_PAUSE, "--pause", help="Seconds between requests"),
+    cache_dir: Optional[str] = typer.Option(None, "--cache-dir", help="Directory of the batch cache (default: the openverto cache)"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print nodes, requests and estimated time, without calling the service"),
+    yes: bool = typer.Option(False, "--yes", help=f"Confirm a job of more than {CONFIRM_THRESHOLD} requests"),
+):
+    """Build a horizontal shift grid (PROJ GeoTIFF) by sampling the IGM service.
+
+    The rectangle must be fully inside the IGM coverage: one node outside fails
+    the request and no grid is written. Interrupted runs resume from the cache.
+
+    Examples:
+
+      openverto grid --from 4265 --to 6706 --bbox 11 43.5 12 44 --dry-run
+      openverto grid --from 4265 --to 6706 --bbox 11 43.5 12 44 --out roma40_rdn2008.tif
+      cct +proj=hgridshift +grids=$PWD/roma40_rdn2008.tif
+    """
+    in_e = _parse_epsg(from_epsg)
+    out_e = _parse_epsg(to_epsg)
+    if not dry_run and not out:
+        _die("--out is required unless --dry-run is given", EXIT_USAGE)
+    try:
+        check_systems(in_e, out_e)
+        lattice = build_lattice(bbox, step_lon=step_lon, step_lat=step_lat, origin_lon=origin_lon, origin_lat=origin_lat)
+    except GridError as exc:
+        _die(str(exc), EXIT_USAGE)
+
+    def gate(max_coord: int) -> dict:
+        plan = plan_grid(lattice, in_e, out_e, max_coord=max_coord, pause=pause, cache_dir=cache_dir)
+        if not dry_run and plan["requests"] > CONFIRM_THRESHOLD and not yes:
+            _emit(plan, title="grid plan")
+            _die(f"{plan['requests']} requests to the free IGM service: re-run with --yes to confirm", EXIT_USAGE)
+        return plan
+
+    plan = gate(MAX_COORD)
+    if dry_run:
+        _emit(plan, title="grid plan")
+        return
+    max_coord, info_requests = MAX_COORD, 0
+    if plan["requests"]:
+        try:
+            max_coord, info_requests = int(lib_info()["maxCoord"]), 1
+        except Exception as exc:  # noqa: BLE001
+            _die(f"could not read maxCoord: {exc}", EXIT_API)
+        if max_coord < 1:
+            _die(f"the service declares maxCoord={max_coord}", EXIT_API)
+        if max_coord != MAX_COORD:
+            gate(max_coord)
+    try:
+        report = build_grid(lattice, in_e, out_e, out, max_coord=max_coord, pause=pause, cache_dir=cache_dir, info_requests=info_requests)
+    except VertoError as exc:
+        if exc.outside_grid:
+            _die(f"a node of this --bbox is outside the IGM coverage, no grid written: use a smaller --bbox. Report: {out}.report.json", EXIT_USAGE)
+        _handle_verto_error(exc)
+    except Exception as exc:  # noqa: BLE001
+        _die(f"{exc}. Report: {out}.report.json", EXIT_API)
+    _emit(report, title="grid")
 
 
 @app.command()

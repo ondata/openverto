@@ -73,6 +73,55 @@ openverto --insecure convert --from 4265 --to 6706 --no-cache 12.4924 41.8902
 di impersonificazione, anche alle credenziali inviate. Usalo solo se accetti
 questo rischio; non viene mai attivato automaticamente dopo un errore SSL.
 
+### Griglie di spostamento (`grid`)
+
+`grid` costruisce una griglia di spostamento orizzontale fra due sistemi geografici, campionando Verto Online sui nodi di un reticolo regolare. Il risultato è un GeoTIFF nel [formato griglie di PROJ](https://proj.org/en/stable/specifications/geodetictiffgrids.html), che GDAL e PROJ usano per convertire punti e raster senza chiamare il servizio.
+
+**Le griglie sono solo 2D.** Verto Online converte coordinate planimetriche: la griglia contiene gli spostamenti in latitudine e longitudine, e le quote non vengono trasformate.
+
+```bash
+# nodi, richieste e tempo previsti, senza chiamare il servizio
+openverto grid --from 4265 --to 6706 --bbox 11 43.5 12 44 --dry-run
+
+# la griglia, con passo predefinito 7,5' x 5' (450" x 300")
+openverto grid --from 4265 --to 6706 --bbox 11 43.5 12 44 --out roma40_rdn2008.tif
+```
+
+Il comando accetta solo sistemi geografici disponibili in Verto, di datum diversi: 4265 (Roma40), 4230 (ED50), 4670 (IGM95), 6706 (RDN2008). Accanto alla griglia scrive `<out>.report.json`, con nodi totali, validi e in errore e richieste fatte.
+
+Il rettangolo deve stare tutto dentro la copertura di Verto: un solo nodo fuori fa fallire la richiesta, e in quel caso non viene scritta nessuna griglia. Il rettangolo 6 35 19 47,5 sull'Italia intera viene rifiutato (prova del 9 novembre 2026). Si usa quindi un `--bbox` più piccolo, che copra l'area di lavoro.
+
+Con il passo predefinito i nodi coincidono con quelli dei grigliati IGM: multipli di 7,5' dal meridiano di Monte Mario (12°27'08,4" E) e di 5' in latitudine. Su 300 punti fra i nodi, in Italia centrale, la differenza da Verto Online è di 0,09 cm al massimo. Con un reticolo non allineato (`--origin-lon`, `--origin-lat`) sale a 4,35 cm.
+
+#### Riproiettare un raster con la griglia
+
+La griglia deve coprire tutto il raster. Si indica nel sistema di partenza con `+nadgrids`; `+ellps=intl` è l'ellissoide di Roma40 e di ED50.
+
+```bash
+# raster in Roma40 geografico (EPSG:4265) -> RDN2008 geografico (EPSG:6706)
+gdalwarp \
+  -s_srs "+proj=longlat +ellps=intl +nadgrids=$PWD/roma40_rdn2008.tif +no_defs +type=crs" \
+  -t_srs EPSG:6706 \
+  raster_roma40.tif raster_rdn2008.tif
+
+# raster in Gauss-Boaga fuso Ovest (EPSG:3003) -> RDN2008 / UTM 32N (EPSG:7791)
+gdalwarp \
+  -s_srs "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl +nadgrids=$PWD/roma40_rdn2008.tif +units=m +no_defs +type=crs" \
+  -t_srs EPSG:7791 \
+  raster_gb.tif raster_utm32.tif
+
+# un punto, per controllo (lon lat)
+echo "11.5 43.7 0 0" | cct -d 9 +proj=hgridshift +grids=$PWD/roma40_rdn2008.tif
+```
+
+#### Uso del servizio
+
+Verto Online è gratuito e condiviso, quindi il comando fa il minor numero possibile di richieste: una alla volta, con i batch più grandi ammessi da `maxCoord` e una pausa fra l'una e l'altra (`--pause`, 2 secondi). Sopra le 10 richieste serve `--yes`. Le risposte riuscite restano in cache, quindi un'esecuzione interrotta riparte da dove si era fermata. Dopo 3 errori di rete consecutivi il comando si ferma, e una risposta di errore del servizio non viene ritentata.
+
+Questo vale per tutti i comandi e per la libreria: per ogni utente di una macchina parte una sola richiesta alla volta verso IGM. Più esecuzioni in parallelo o più thread si mettono in coda, anche se usano cache diverse. Il blocco non coordina utenti o macchine diversi. Se il file di blocco non si può creare, ad esempio con la home in sola lettura, la richiesta parte lo stesso.
+
+Le [condizioni d'uso](https://igmi.esercito.difesa.it/servizi/verto-online/), lette il 9 novembre 2026, dicono che l'uso delle API è libero purché non comprometta il funzionamento del servizio e non sovraccarichi l'infrastruttura, e che IGM può introdurre limiti e rate limit in qualsiasi momento. Sui risultati dicono che, salvo diversa indicazione, «mantengono la stessa licenza applicabile ai dati in ingresso». Non contengono divieti specifici su uso massivo o dati derivati. Il comando produce la griglia in locale: openverto non ne distribuisce.
+
 ### Lettura del CSV (comando `batch`)
 
 Il CSV di input è letto con **DuckDB**: il **delimitatore** (`,`, `;`, tab, `|`) è
@@ -113,6 +162,7 @@ Tutte le opzioni sono documentate nel [**riferimento CLI completo**](docs/cli.md
 | `detect` | Indovina il sistema di origine di una coordinata dalla sua magnitudine |
 | `targets` | Destinazioni di conversione valide per un EPSG (datum diverso) |
 | `roundtrip` | Converte A→B→A e riporta l'errore residuo del datum |
+| `grid` | Costruisce una griglia di spostamento 2D per GDAL e PROJ campionando Verto Online |
 | `cache` | Ispeziona o svuota la cache offline |
 | `doctor` | Verifica la connettività al servizio |
 
@@ -186,11 +236,18 @@ per reverse engineering, leggibile e con esempi: [`docs/openapi.yaml`](docs/open
 
 openverto è uno strumento **indipendente** e **non ufficiale**: **non** è sviluppato, approvato, certificato o distribuito dall'**Istituto Geografico Militare (IGM)**. Agisce esclusivamente come client verso un endpoint pubblico.
 
-Il servizio API, l'infrastruttura, gli algoritmi di calcolo e i risultati delle elaborazioni restano di esclusiva proprietà dell'IGM. L'uso del servizio tramite openverto è soggetto alle [condizioni d'uso ufficiali pubblicate da IGM](https://igmi.esercito.difesa.it/servizi/verto-online/); l'invio di coordinate all'endpoint implica l'accettazione di tali condizioni.
+Il software, l'infrastruttura e l'implementazione del servizio restano di esclusiva proprietà dell'IGM. Salvo diversa indicazione, i risultati mantengono la licenza dei dati in ingresso. L'uso del servizio tramite openverto è soggetto alle [condizioni d'uso ufficiali pubblicate da IGM](https://igmi.esercito.difesa.it/servizi/verto-online/); l'invio di coordinate all'endpoint implica l'accettazione di tali condizioni.
 
 ## Crediti
 
 Servizio dati: [IGM Verto Online](https://igmi.esercito.difesa.it/servizi/verto-online/), Istituto Geografico Militare.
+
+Il comando `grid` segue il metodo descritto in queste pubblicazioni, con Verto Online come servizio di conversione:
+
+- Sferlazza E., Bellini E. (2008), *Conversione di coordinate con grigliati NTv2 - un'applicazione per il territorio siciliano*.
+- Sferlazza E., Falciano A. (2009), *Trasformazione della cartografia catastale mediante grigliati NTv2*, Atti della 13a conferenza ASITA.
+- Costabile S., Martini S., Avanzi A., Petriglia L., Corrarello G. (2012), [*Geoportale nazionale - un approfondimento sulle metodologie di conversione e trasformazione coordinate*](https://www.mediageo.it/ojs/index.php/GEOmedia/article/download/229/205/969), GEOmedia 6-2012.
+- Sferlazza E. (2014), [*Come costruirsi un grigliato NTv2 in casa*](https://ojs.mediageo.it/index.php/GEOmedia/article/view/797), GEOmedia 2-2014.
 
 ## Licenza
 

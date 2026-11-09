@@ -21,7 +21,7 @@ class FakePoster:
     def __init__(self):
         self.calls = 0
 
-    def __call__(self, body):
+    def __call__(self, body, **kwargs):
         self.calls += 1
         coords = body["coordinate"]
         for c in coords:
@@ -94,7 +94,7 @@ def test_convert_uses_cache(monkeypatch, tmp_path):
 def test_roundtrip_residual_zero(monkeypatch):
     """A perfectly invertible fake transform yields ~0 residual."""
 
-    def invertible(body):
+    def invertible(body, **kwargs):
         coords = body["coordinate"]
         # forward adds 1; the back call (swapped epsg) must subtract 1.
         delta = 1 if body["inEpsg"] == 3003 else -1
