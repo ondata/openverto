@@ -27,6 +27,7 @@ openverto [OPZIONI GLOBALI] <comando> [OPZIONI COMANDO]
 |---|---|---|
 | `-o / --output` | `table` | Formato di output: `table`, `json`, `jsonl`, `csv` |
 | `--timeout` | `30.0` | Timeout per ogni richiesta HTTP (secondi) |
+| `-k / --insecure` | disattivato | Salta la verifica del certificato TLS per tutte le richieste dell'invocazione (non sicuro) |
 | `--throttle` | `2.0` | Pausa tra batch consecutivi nei job con più di 32 000 coordinate (secondi); `0` per disabilitare |
 | `-H / --header` | — | Header HTTP aggiuntivo `Nome: Valore` (ripetibile) |
 | `--utente` | `OPENVERTO_UTENTE` | Utente IGM, l'email dell'account |
@@ -43,6 +44,20 @@ openverto -o csv convert ...        # CSV con intestazione
 ```
 
 `jsonl` è il formato più adatto allo streaming verso `jq` o altri strumenti di linea.
+
+### Verifica SSL/TLS
+
+La verifica del certificato è attiva per default, senza fallback automatico.
+Per saltarla esplicitamente (ad esempio con certificato IGM scaduto):
+
+```bash
+openverto --insecure convert --from 4265 --to 6706 --no-cache 12.4924 41.8902
+```
+
+`-k` è equivalente a `--insecure`. Il flag vale per tutti i comandi di rete,
+solo nell'invocazione corrente. **Non garantisce l'identità del server**:
+coordinate e credenziali possono essere intercettate tramite impersonificazione.
+Usalo solo se accetti questo rischio.
 
 ### Throttle e batch
 

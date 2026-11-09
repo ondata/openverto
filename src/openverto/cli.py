@@ -13,7 +13,7 @@ from rich.table import Table
 
 from . import __version__
 from . import cache as cache_mod
-from .base import CREDENTIALS_HINT, VertoError, set_credentials, set_extra_headers, set_throttle, set_timeout
+from .base import CREDENTIALS_HINT, VertoError, set_credentials, set_extra_headers, set_throttle, set_timeout, set_verify_ssl
 from .transform import (
     MAX_COORD,
     convert as lib_convert,
@@ -210,6 +210,7 @@ def _version_cb(value: bool) -> None:
 def _main(
     output: str = typer.Option("table", "--output", "-o", help="table | json | jsonl | csv"),
     timeout: float = typer.Option(30.0, "--timeout", help="Per-request timeout in seconds"),
+    insecure: bool = typer.Option(False, "--insecure", "-k", help="Skip TLS certificate verification (unsafe: server identity is not verified)"),
     throttle: float = typer.Option(2.0, "--throttle", help="Seconds between batches for jobs over 32000 coords (be kind to the free IGM service; 0 to disable)"),
     header: Optional[list[str]] = typer.Option(None, "--header", "-H", help="Extra HTTP header 'Name: Value' (repeatable)"),
     utente: Optional[str] = typer.Option(None, "--utente", help="IGM user, the account email (or set OPENVERTO_UTENTE)"),
@@ -221,6 +222,7 @@ def _main(
         _die(f"invalid --output {output!r}; choose table, json, jsonl, csv", EXIT_USAGE)
     _output = output
     set_timeout(timeout)
+    set_verify_ssl(not insecure)
     set_throttle(throttle)
     set_credentials(utente, chiave)
     if header:
