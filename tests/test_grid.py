@@ -180,6 +180,19 @@ def test_cache_clear_removes_the_grid_batches(monkeypatch, tmp_path):
     assert cache_mod.stats()["grid_batches_cached"] == 0
 
 
+def test_read_only_cache_can_be_inspected(monkeypatch, tmp_path):
+    monkeypatch.setenv("OPENVERTO_CACHE_DIR", str(tmp_path))
+    tmp_path.chmod(0o555)
+    try:
+        assert cache_mod.stats()["grid_batches_cached"] == 0
+        assert cache_mod.clear() == []
+        plan = g.plan_grid(g.build_lattice(BBOX), 4265, 6706)
+        assert plan["cached_batches"] == 0
+        assert not (tmp_path / "grid").exists()
+    finally:
+        tmp_path.chmod(0o755)
+
+
 # --------------------------------------------------------------------------- #
 # respect for the service
 # --------------------------------------------------------------------------- #

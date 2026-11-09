@@ -164,7 +164,6 @@ class _BatchCache:
 
     def __init__(self, directory: str | Path | None):
         self.dir = Path(directory) if directory else cache_mod.grid_dir()
-        self.dir.mkdir(parents=True, exist_ok=True)
 
     def _path(self, key: str) -> Path:
         return self.dir / f"{key}.json"
@@ -179,6 +178,7 @@ class _BatchCache:
             return None
 
     def put(self, key: str, coords: list[Coord]) -> None:
+        self.dir.mkdir(parents=True, exist_ok=True)
         _write_atomic(self._path(key), json.dumps(coords).encode())
 
 

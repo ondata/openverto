@@ -28,10 +28,8 @@ def cache_dir() -> Path:
 
 
 def grid_dir() -> Path:
-    """Return the directory of the cached ``grid`` batches."""
-    d = cache_dir() / "grid"
-    d.mkdir(parents=True, exist_ok=True)
-    return d
+    """Return the directory of the cached ``grid`` batches, without creating it."""
+    return cache_dir() / "grid"
 
 
 def _systems_file() -> Path:
