@@ -14,9 +14,9 @@ Pensato per essere **orchestrato da agenti AI**: output `--json`/`--jsonl`/`--cs
 
 > **Con un'AI.** openverto può essere usato anche tramite un AI, che leggerà il suo help per capirne il funzionamento. Il repo include anche la Agent Skill [`verto-explorer`](skills/verto-explorer/SKILL.md), che si [installa così](docs/skill/README.md).
 
-## Prompt per iniziare con un agente AI
+## Agent quickstart
 
-Per provare openverto senza installare skill o server MCP, copia questo testo in un agente AI che possa eseguire comandi.
+Un prompt da copiare e incollare in un agente AI che possa eseguire comandi, per provare openverto senza installare skill o server MCP.
 
 ```text
 Aiutami a usare openverto (https://github.com/ondata/openverto), una CLI Python che trasforma coordinate tra i sistemi di riferimento italiani (Roma40, ED50, IGM95/ETRS89, RDN2008) tramite il servizio ufficiale IGM Verto Online. Non è un catalogo di dati: trasforma coordinate che ho già.
