@@ -21,6 +21,7 @@ import pytest
 from typer.testing import CliRunner
 
 from openverto import base
+from openverto import cache as cache_mod
 from openverto import grid as g
 from openverto.base import VertoError
 from openverto.cli import app
@@ -135,6 +136,48 @@ def test_bad_bbox_rejected(bbox):
 def test_unusable_systems_rejected(a, b, message):
     with pytest.raises(g.GridError, match=message):
         g.check_systems(a, b)
+
+
+def test_build_grid_rejects_projected_systems_before_any_request(run, monkeypatch, tmp_path):
+    service = Service()
+    monkeypatch.setattr(g, "_convert_chunk", service)
+    with pytest.raises(g.GridError, match="projected"):
+        g.build_grid(g.build_lattice(BBOX), 3003, 6706, tmp_path / "g.tif", cache_dir=tmp_path / "c")
+    assert service.batches == []
+
+
+def test_planning_a_huge_grid_does_not_build_it(tmp_path):
+    lattice = g.build_lattice((6.0, 35.0, 19.0, 47.5), step_lon=1, step_lat=1)
+    plan = g.plan_grid(lattice, 4265, 6706, cache_dir=tmp_path)
+    assert plan["nodes"] == lattice.size > 2_000_000_000
+    assert plan["requests"] == plan["batches"] == math.ceil(lattice.size / 32000)
+
+
+def test_concurrent_writes_of_the_same_file_do_not_collide(tmp_path):
+    target = tmp_path / "same.json"
+    errors = []
+
+    def write():
+        try:
+            for _ in range(50):
+                g._write_atomic(target, b"{}")
+        except OSError as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=write) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert errors == []
+
+
+def test_cache_clear_removes_the_grid_batches(monkeypatch, tmp_path):
+    monkeypatch.setenv("OPENVERTO_CACHE_DIR", str(tmp_path))
+    g._BatchCache(None).put("abc", [(1.0, 2.0)])
+    assert cache_mod.stats()["grid_batches_cached"] == 1
+    cache_mod.clear()
+    assert cache_mod.stats()["grid_batches_cached"] == 0
 
 
 # --------------------------------------------------------------------------- #

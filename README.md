@@ -118,7 +118,7 @@ echo "11.5 43.7 0 0" | cct -d 9 +proj=hgridshift +grids=$PWD/roma40_rdn2008.tif
 
 Verto Online è gratuito e condiviso, quindi il comando fa il minor numero possibile di richieste: una alla volta, con i batch più grandi ammessi da `maxCoord` e una pausa fra l'una e l'altra (`--pause`, 2 secondi). Sopra le 10 richieste serve `--yes`. Le risposte riuscite restano in cache, quindi un'esecuzione interrotta riparte da dove si era fermata. Dopo 3 errori di rete consecutivi il comando si ferma, e una risposta di errore del servizio non viene ritentata.
 
-Questo vale per tutti i comandi e per la libreria: su una stessa macchina parte una sola richiesta alla volta verso IGM. Più esecuzioni in parallelo o più thread si mettono in coda, anche se usano cache diverse. Il blocco è locale: non coordina macchine diverse.
+Questo vale per tutti i comandi e per la libreria: per ogni utente di una macchina parte una sola richiesta alla volta verso IGM. Più esecuzioni in parallelo o più thread si mettono in coda, anche se usano cache diverse. Il blocco non coordina utenti o macchine diversi. Se il file di blocco non si può creare, ad esempio con la home in sola lettura, la richiesta parte lo stesso.
 
 Le [condizioni d'uso](https://igmi.esercito.difesa.it/servizi/verto-online/), lette il 9 novembre 2026, dicono che l'uso delle API è libero purché non comprometta il funzionamento del servizio e non sovraccarichi l'infrastruttura, e che IGM può introdurre limiti e rate limit in qualsiasi momento. Sui risultati dicono che, salvo diversa indicazione, «mantengono la stessa licenza applicabile ai dati in ingresso». Non contengono divieti specifici su uso massivo o dati derivati. Il comando produce la griglia in locale: openverto non ne distribuisce.
 

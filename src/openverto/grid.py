@@ -15,13 +15,15 @@ interpolates nodata values as if they were numbers.
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 import math
 import os
 import struct
+import threading
 import time
 import zlib
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -51,6 +53,9 @@ IGM_ORIGIN_LON = 12 + 27 / 60 + 8.4 / 3600
 IGM_ORIGIN_LAT = 44.0
 
 _ARCSEC_TOLERANCE = 1e-6
+#: Beyond this many batches the plan does not look in the cache: reading it would
+#: take longer than the estimate is worth, and the job needs --yes anyway.
+_MAX_PLAN_SCAN = 1000
 #: The longitudes of this system are referred to the Rome meridian.
 _ROME_MERIDIAN_EPSG = 4806
 
@@ -80,9 +85,12 @@ class Lattice:
     def size(self) -> int:
         return self.nx * self.ny
 
-    def nodes(self) -> list[Coord]:
+    def iter_nodes(self) -> Iterator[Coord]:
         """Every node, west to east and south to north."""
-        return [(self.lon(i), self.lat(j)) for j in range(self.ny) for i in range(self.nx)]
+        return ((self.lon(i), self.lat(j)) for j in range(self.ny) for i in range(self.nx))
+
+    def nodes(self) -> list[Coord]:
+        return list(self.iter_nodes())
 
 
 def _axis(low: float, high: float, step: float, origin: float | None) -> tuple[float, int]:
@@ -139,8 +147,11 @@ def check_systems(from_epsg: int, to_epsg: int) -> None:
         raise GridError(f"EPSG {from_epsg} and {to_epsg} share the same datum: there is no shift to grid")
 
 
-def _batches(nodes: list[Coord], max_coord: int) -> list[list[Coord]]:
-    return [nodes[i : i + max_coord] for i in range(0, len(nodes), max_coord)]
+def _batches(nodes: Iterable[Coord], max_coord: int) -> Iterator[list[Coord]]:
+    """Yield one batch at a time, so that planning a huge grid stays small."""
+    it = iter(nodes)
+    while batch := list(itertools.islice(it, max_coord)):
+        yield batch
 
 
 def _key(from_epsg: int, to_epsg: int, batch: list[Coord]) -> str:
@@ -152,7 +163,7 @@ class _BatchCache:
     """One file per successful batch: a resumed run replays them for free."""
 
     def __init__(self, directory: str | Path | None):
-        self.dir = Path(directory) if directory else cache_mod.cache_dir() / "grid"
+        self.dir = Path(directory) if directory else cache_mod.grid_dir()
         self.dir.mkdir(parents=True, exist_ok=True)
 
     def _path(self, key: str) -> Path:
@@ -172,7 +183,7 @@ class _BatchCache:
 
 
 def _write_atomic(path: Path, data: bytes) -> None:
-    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     try:
         tmp.write_bytes(data)
         os.replace(tmp, path)
@@ -191,16 +202,18 @@ def plan_grid(
     cache_dir: str | Path | None = None,
 ) -> dict:
     """Describe the work to do, without touching the network."""
-    cache = _BatchCache(cache_dir)
-    batches = _batches(lattice.nodes(), max_coord)
-    cached = sum(cache.has(_key(from_epsg, to_epsg, b)) for b in batches)
-    requests = len(batches) - cached
+    batches = math.ceil(lattice.size / max_coord)
+    cached = 0
+    if batches <= _MAX_PLAN_SCAN:
+        cache = _BatchCache(cache_dir)
+        cached = sum(cache.has(_key(from_epsg, to_epsg, b)) for b in _batches(lattice.iter_nodes(), max_coord))
+    requests = batches - cached
     return {
         "nodes": lattice.size,
         "nx": lattice.nx,
         "ny": lattice.ny,
         "max_coord": max_coord,
-        "batches": len(batches),
+        "batches": batches,
         "cached_batches": cached,
         "requests": requests,
         "estimated_seconds": requests + max(requests - 1, 0) * pause,
@@ -263,6 +276,7 @@ def build_grid(
     Writes no grid unless every node is converted. On failure the report still
     records what happened, and the exception propagates.
     """
+    check_systems(from_epsg, to_epsg)
     out = Path(out)
     report: dict = {
         "status": "error",

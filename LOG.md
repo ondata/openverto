@@ -8,7 +8,7 @@
 - Batch da `maxCoord`, una richiesta alla volta, cache per batch e ripresa, backoff, stop dopo 3 errori, `--yes` sopra 10 richieste. User-Agent ora con versione e URL del progetto.
 - GeoTIFF scritto con la sola libreria standard. Test su risposte registrate con `gdalinfo`, `cct`, `gdalwarp`: in CI si installano GDAL e PROJ. `terrio` non applica le griglie.
 - Con il passo IGM il reticolo si allinea di default ai nodi dei grigliati IGM. Su 300 punti fra i nodi, in Italia centrale, 0,09 cm al massimo da Verto; non allineato 4,35 cm.
-- Una sola richiesta alla volta verso IGM su ogni macchina, per CLI e libreria: blocco su file in `base.post` con `filelock` (nuova dipendenza), fuori da `OPENVERTO_CACHE_DIR`.
+- Una sola richiesta alla volta verso IGM per ogni utente della macchina, per CLI e libreria: blocco su file in `base.post` con `filelock` (nuova dipendenza), fuori da `OPENVERTO_CACHE_DIR`.
 - Risposte registrate e misure ottenute con la verifica TLS disattivata, perché il certificato IGM era scaduto: da rifare al rinnovo.
 - README: corretta la frase sulla proprietà dei risultati, in contrasto con le condizioni d'uso.
 
