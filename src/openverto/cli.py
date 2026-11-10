@@ -581,7 +581,10 @@ def grid(
     dry_run: bool = typer.Option(False, "--dry-run", help="Print nodes, requests and estimated time, without calling the service"),
     yes: bool = typer.Option(False, "--yes", help=f"Confirm a job of more than {CONFIRM_THRESHOLD} requests"),
 ):
-    """Build a horizontal shift grid (PROJ GeoTIFF) by sampling the IGM service.
+    """Build a horizontal shift grid (PROJ GeoTIFF) from IGM outputs (not an official IGM command).
+
+    Note: this is not an official command. It is not part of the official IGM
+    APIs: it is openverto's own reuse of the outputs of those APIs.
 
     The rectangle must be fully inside the IGM coverage: one node outside fails
     the request and no grid is written. Interrupted runs resume from the cache.
