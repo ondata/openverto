@@ -2,7 +2,7 @@
 
 ## 2026-11-10 - `grid` non è un comando ufficiale
 
-- README, `grid --help` e skill `verto-explorer` 1.5: nota che `grid` non fa parte delle API ufficiali IGM, è un riutilizzo dei loro output.
+- README, `--help` (generale e di `grid`) e skill `verto-explorer` 1.5: nota che `grid` non fa parte delle API ufficiali IGM, è un riutilizzo dei loro output.
 
 ## 2026-11-09 - prompt per agenti AI nel README
 
