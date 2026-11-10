@@ -1,5 +1,10 @@
 # LOG
 
+## 2026-11-10 - v0.4.1
+
+- `openverto --help` e `openverto grid --help` dicono che `grid` non è un comando ufficiale IGM. Nessun cambiamento nelle conversioni.
+- Rilasciata con i 12 test live falliti: certificato IGM scaduto il 6 novembre 2026, nessun altro errore. Lint e 112 test offline passati.
+
 ## 2026-11-10 - `grid` non è un comando ufficiale
 
 - README, `--help` (generale e di `grid`) e skill `verto-explorer` 1.5: nota che `grid` non fa parte delle API ufficiali IGM, è un riutilizzo dei loro output.
