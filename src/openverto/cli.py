@@ -583,6 +583,9 @@ def grid(
 ):
     """Build a horizontal shift grid (PROJ GeoTIFF) by sampling the IGM service.
 
+    Note: this is not an official command. It is not part of the official IGM
+    APIs: it is openverto's own reuse of the outputs of those APIs.
+
     The rectangle must be fully inside the IGM coverage: one node outside fails
     the request and no grid is written. Interrupted runs resume from the cache.
 
