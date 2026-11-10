@@ -99,6 +99,8 @@ questo rischio; non viene mai attivato automaticamente dopo un errore SSL.
 
 `grid` costruisce una griglia di spostamento orizzontale fra due sistemi geografici, campionando Verto Online sui nodi di un reticolo regolare. Il risultato è un GeoTIFF nel [formato griglie di PROJ](https://proj.org/en/stable/specifications/geodetictiffgrids.html), che GDAL e PROJ usano per convertire punti e raster senza chiamare il servizio.
 
+**`grid` non è un comando ufficiale.** Non fa parte delle API ufficiali IGM: è un nostro riutilizzo degli output di quelle API.
+
 **Le griglie sono solo 2D.** Verto Online converte coordinate planimetriche: la griglia contiene gli spostamenti in latitudine e longitudine, e le quote non vengono trasformate.
 
 ```bash

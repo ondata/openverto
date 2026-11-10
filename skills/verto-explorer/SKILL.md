@@ -18,7 +18,7 @@ compatibility: >
   inspect, detect, targets, roundtrip, grid, cache, doctor).
 metadata:
   author: ondata
-  version: "1.4"
+  version: "1.5"
 ---
 
 # Verto Explorer — Guided Coordinate Conversion for Italy
@@ -197,7 +197,7 @@ Italy is valid; a point in another country or open ocean is rejected with
 
 ## Building a shift grid for GDAL and PROJ
 
-When the user needs to convert a raster, or many conversions without calling the service, `openverto grid` samples Verto on a lattice and writes a PROJ GeoTIFF grid. **Grids are 2D only**: heights are not transformed. Source and target must be geographic Verto systems of different datums (4265, 4230, 4670, 6706).
+When the user needs to convert a raster, or many conversions without calling the service, `openverto grid` samples Verto on a lattice and writes a PROJ GeoTIFF grid. **`grid` is not an official command**: it is not part of the official IGM APIs, it is openverto's own reuse of the outputs of those APIs. Say so when you offer it. **Grids are 2D only**: heights are not transformed. Source and target must be geographic Verto systems of different datums (4265, 4230, 4670, 6706).
 
 ```bash
 openverto grid --from 4265 --to 6706 --bbox 11 43.5 12 44 --dry-run
